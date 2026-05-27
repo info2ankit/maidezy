@@ -1,8 +1,8 @@
 # SocietyServe — Project Tracker
 
-> **Last Updated**: Session 2 — Phase 1 Project Setup Complete  
-> **Current Phase**: Phase 2 — Authentication Module  
-> **Next Task**: Auth UI — mobile number screen + OTP screen + bypass logic
+> **Last Updated**: Session 2 — Module 1 Super Admin Complete  
+> **Current Phase**: Module 2 — RWA Admin  
+> **Next Task**: RWA Admin layout + dashboard tab
 
 ---
 
@@ -52,13 +52,13 @@
 
 | Task                            | Status | Notes                       |
 | ------------------------------- | ------ | --------------------------- |
-| Auth UI — mobile number screen  | ⏳     |                             |
-| Auth UI — OTP screen            | ⏳     |                             |
-| Bypass OTP logic                | ⏳     | Any 6-digit code works      |
-| Auth Zustand store              | ⏳     | user, role, isAuthenticated |
-| Role-based redirect after login | ⏳     | 4 roles → 4 portals         |
-| Protected route component       | ⏳     |                             |
-| Logout flow                     | ⏳     |                             |
+| Auth UI — mobile number screen  | ✅     | Session 2                   |
+| Auth UI — OTP screen            | ✅     | 6-box with auto-advance     |
+| Bypass OTP logic                | ✅     | Email-auth bypass, any 6-digit code works |
+| Auth Zustand store              | ✅     | Session 1 — user, role, isAuthenticated, persist |
+| Role-based redirect after login | ✅     | 4 roles → 4 portals         |
+| Protected route component       | ✅     | RequireRole + PublicOnlyRoute |
+| Logout flow                     | ⏳     | signOut service ready; UI pending |
 
 ---
 
@@ -68,28 +68,28 @@
 
 | Task                                                  | Status | Notes |
 | ----------------------------------------------------- | ------ | ----- |
-| Super admin layout + sidebar                          | ⏳     |       |
-| Stats cards (societies, admins, providers, residents) | ⏳     |       |
+| Super admin layout + sidebar                          | ✅     | Navy sidebar desktop, bottom nav mobile |
+| Stats cards (societies, admins, providers, residents) | ✅     | Session 2 |
 | Recent activity feed                                  | ⏳     |       |
 
 ### Society Management
 
 | Task                          | Status | Notes                               |
 | ----------------------------- | ------ | ----------------------------------- |
-| Society list page             | ⏳     |                                     |
-| Register society form         | ⏳     | Name, address, pincode, city, state |
+| Society list page             | ✅     | Session 2                           |
+| Register society form         | ✅     | Modal with RHF + Zod validation     |
 | Assign RWA admin to society   | ⏳     |                                     |
 | Society detail view           | ⏳     |                                     |
-| Activate / deactivate society | ⏳     |                                     |
+| Activate / deactivate society | ✅     | Toggle on list card                 |
 
 ### Admin Management
 
 | Task                        | Status | Notes |
 | --------------------------- | ------ | ----- |
-| Admin list page             | ⏳     |       |
-| Invite / create admin       | ⏳     |       |
-| View admin details          | ⏳     |       |
-| Activate / deactivate admin | ⏳     |       |
+| Admin list page             | ✅     | Session 2 |
+| Invite / create admin       | ⏳     |           |
+| View admin details          | ⏳     |           |
+| Activate / deactivate admin | ✅     | Toggle on list card |
 
 ### Reports
 
@@ -217,3 +217,4 @@
 | --------- | ---------- | ----------------------------------------------------------------------------- |
 | Session 1 | 2026-05-27 | Full architecture, tech stack, schema design, MASTER_PROMPT + tracker created |
 | Session 2 | 2026-05-27 | Phase 1 complete: Vite+React+TS scaffold, Tailwind SCSS, Router, Zustand, Supabase client, types |
+| Session 2 | 2026-05-27 | Phase 2 complete: authService (bypass+prod), MobileStep, OtpStep (6-box), LoginPage, role redirect |
