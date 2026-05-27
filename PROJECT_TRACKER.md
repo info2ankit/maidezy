@@ -1,8 +1,8 @@
 # SocietyServe — Project Tracker
 
-> **Last Updated**: Session 2 — Module 1 Super Admin Complete  
-> **Current Phase**: Module 2 — RWA Admin  
-> **Next Task**: RWA Admin layout + dashboard tab
+> **Last Updated**: Session 2 — Module 2 RWA Admin Complete  
+> **Current Phase**: Module 3 — Service Provider  
+> **Next Task**: Service Provider onboarding + KYC upload
 
 ---
 
@@ -78,7 +78,7 @@
 | ----------------------------- | ------ | ----------------------------------- |
 | Society list page             | ✅     | Session 2                           |
 | Register society form         | ✅     | Modal with RHF + Zod validation     |
-| Assign RWA admin to society   | ⏳     |                                     |
+| Assign RWA admin to society   | ✅     | Via Admins → Assign Admin modal     |
 | Society detail view           | ⏳     |                                     |
 | Activate / deactivate society | ✅     | Toggle on list card                 |
 
@@ -87,7 +87,7 @@
 | Task                        | Status | Notes |
 | --------------------------- | ------ | ----- |
 | Admin list page             | ✅     | Session 2 |
-| Invite / create admin       | ⏳     |           |
+| Invite / create admin       | ✅     | Assign Admin modal — lookup by mobile + assign to society |
 | View admin details          | ⏳     |           |
 | Activate / deactivate admin | ✅     | Toggle on list card |
 
@@ -106,7 +106,7 @@
 
 | Task                | Status | Notes |
 | ------------------- | ------ | ----- |
-| Summary cards       | ⏳     |       |
+| Summary cards       | ✅     | 4 cards: residents, providers, pending KYC, open complaints |
 | Recent KYC requests | ⏳     |       |
 | Recent complaints   | ⏳     |       |
 
@@ -114,32 +114,32 @@
 
 | Task                         | Status | Notes |
 | ---------------------------- | ------ | ----- |
-| Resident list                | ⏳     |       |
-| Resident detail + KYC status | ⏳     |       |
-| KYC approve/reject           | ⏳     |       |
+| Resident list                | ✅     | Session 2 |
+| Resident detail + KYC status | ✅     | Inline KYC badge + flat/block |
+| KYC approve/reject           | ✅     | Inline approve/reject buttons |
 
 ### Service Portal Tab
 
 | Task                             | Status | Notes |
 | -------------------------------- | ------ | ----- |
-| Provider list with filters       | ⏳     |       |
+| Provider list with filters       | ✅     | Service type + KYC status pills |
 | Provider detail view             | ⏳     |       |
-| KYC approve/reject for providers | ⏳     |       |
-| Toggle provider availability     | ⏳     |       |
+| KYC approve/reject for providers | ✅     | Inline buttons |
+| Toggle provider availability     | ✅     | Toggle on approved providers |
 
 ### Complaints Tab
 
 | Task                             | Status | Notes |
 | -------------------------------- | ------ | ----- |
-| Complaint list                   | ⏳     |       |
-| Complaint detail + status update | ⏳     |       |
+| Complaint list                   | ✅     | Session 2 |
+| Complaint detail + status update | ✅     | Inline status pills (Open/In Progress/Resolved/Closed) |
 
 ### Settings Tab
 
 | Task                 | Status | Notes |
 | -------------------- | ------ | ----- |
-| Society profile edit | ⏳     |       |
-| Admin profile edit   | ⏳     |       |
+| Society profile edit | ✅     | Session 2 |
+| Admin profile edit   | ✅     | Name + mobile (read-only) |
 
 ---
 
