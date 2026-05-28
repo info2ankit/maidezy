@@ -1,16 +1,18 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, User as UserIcon, FileCheck, CalendarDays, LogOut } from 'lucide-react'
+import {
+  SquaresFour, UserCircle, ShieldCheck, CalendarCheck, SignOut,
+} from '@phosphor-icons/react'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { signOut } from '@/shared/services/authService'
 import { APP_NAME } from '@/shared/utils/constants'
 
 const NAV_ITEMS = [
-  { key: 'dashboard', icon: LayoutDashboard, path: '/provider/dashboard' },
-  { key: 'profile',   icon: UserIcon,        path: '/provider/profile'   },
-  { key: 'kyc',       icon: FileCheck,       path: '/provider/kyc'       },
-  { key: 'bookings',  icon: CalendarDays,    path: '/provider/bookings'  },
+  { key: 'dashboard', icon: SquaresFour,   path: '/provider/dashboard' },
+  { key: 'profile',   icon: UserCircle,    path: '/provider/profile'   },
+  { key: 'kyc',       icon: ShieldCheck,   path: '/provider/kyc'       },
+  { key: 'bookings',  icon: CalendarCheck, path: '/provider/bookings'  },
 ] as const
 
 export default function ProviderSidebar() {
@@ -52,8 +54,12 @@ export default function ProviderSidebar() {
                 )
               }
             >
-              <Icon size={18} />
-              {t(`nav.${key}`)}
+              {({ isActive }) => (
+                <>
+                  <Icon size={20} weight={isActive ? 'fill' : 'regular'} />
+                  {t(`nav.${key}`)}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -67,7 +73,7 @@ export default function ProviderSidebar() {
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold font-body text-white/60 hover:bg-white/10 hover:text-white transition-all duration-150"
           >
-            <LogOut size={18} />
+            <SignOut size={20} weight="regular" />
             {t('nav.logout')}
           </button>
         </div>
@@ -86,8 +92,12 @@ export default function ProviderSidebar() {
               )
             }
           >
-            <Icon size={19} />
-            <span>{t(`nav.${key}`)}</span>
+            {({ isActive }) => (
+              <>
+                <Icon size={22} weight={isActive ? 'fill' : 'regular'} />
+                <span>{t(`nav.${key}`)}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

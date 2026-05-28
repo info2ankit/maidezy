@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import EasyCrop from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
 import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
+import { SpinnerGap } from '@phosphor-icons/react'
 
 // ─── Canvas crop utility ──────────────────────────────────────────────────────
 
@@ -128,7 +128,7 @@ export default function ImageCropModal({ imageSrc, onDone, onCancel }: Props) {
           disabled={processing}
           className="h-12 rounded-2xl bg-accent text-white font-heading font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {processing && <Loader2 size={16} className="animate-spin" />}
+          {processing && <SpinnerGap size={16} weight="bold" className="animate-spin" />}
           {t('kyc.crop_save')}
         </button>
       </div>

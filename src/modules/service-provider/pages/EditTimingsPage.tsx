@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Loader2, X, AlertCircle } from 'lucide-react'
+import { ArrowLeft, SpinnerGap, X, WarningCircle } from '@phosphor-icons/react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { useProvider } from '../components/ProviderContext'
@@ -105,7 +105,7 @@ export default function EditTimingsPage() {
           onClick={() => navigate('/provider/profile')}
           className="w-9 h-9 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50 shrink-0"
         >
-          <ChevronLeft size={20} />
+          <ArrowLeft size={20} weight="bold" />
         </button>
         <div>
           <h1 className="font-heading text-xl font-bold text-gray-800">{t('profile.timing_title')}</h1>
@@ -166,7 +166,7 @@ export default function EditTimingsPage() {
         disabled={isSaving}
         className="w-full h-12 rounded-2xl bg-primary text-white font-heading font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
       >
-        {isSaving && <Loader2 size={16} className="animate-spin" />}
+        {isSaving && <SpinnerGap size={16} weight="bold" className="animate-spin" />}
         {isSaving ? t('profile.saving') : t('profile.save')}
       </button>
     </div>
@@ -202,7 +202,7 @@ function ShiftCard({ index, shift, canDelete, errors, onDelete, onStartChange, o
             className="w-7 h-7 rounded-full bg-gray-100 hover:bg-danger-light text-gray-400 hover:text-danger flex items-center justify-center transition-colors"
             aria-label={t('profile.remove_shift')}
           >
-            <X size={14} />
+            <X size={14} weight="bold" />
           </button>
         )}
       </div>
@@ -225,7 +225,7 @@ function ShiftCard({ index, shift, canDelete, errors, onDelete, onStartChange, o
 
       {rangeError && (
         <div className="flex items-center gap-2 mt-2 text-xs text-danger font-body">
-          <AlertCircle size={12} className="shrink-0" />
+          <WarningCircle size={14} weight="duotone" className="shrink-0" />
           {rangeError}
         </div>
       )}

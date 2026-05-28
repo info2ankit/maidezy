@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { SETUP_TOTAL_STEPS } from '@/shared/stores/workerProfileStore'
 import { cn } from '@/shared/utils/cn'
 
@@ -40,7 +40,7 @@ export default function OnboardingWizardLayout({
               className="w-9 h-9 rounded-xl text-gray-500 hover:bg-gray-100 flex items-center justify-center -ml-1.5"
               aria-label={t('profile.back')}
             >
-              <ChevronLeft size={20} />
+              <ArrowLeft size={20} weight="bold" />
             </button>
           ) : (
             <div className="w-9" />

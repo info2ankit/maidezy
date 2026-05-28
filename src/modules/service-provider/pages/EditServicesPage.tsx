@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, SpinnerGap } from '@phosphor-icons/react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { useProvider } from '../components/ProviderContext'
@@ -94,7 +94,7 @@ export default function EditServicesPage() {
           onClick={() => (step === 2 ? setStep(1) : navigate('/provider/profile'))}
           className="w-9 h-9 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50 shrink-0"
         >
-          <ChevronLeft size={20} />
+          <ArrowLeft size={20} weight="bold" />
         </button>
         <div>
           <h1 className="font-heading text-xl font-bold text-gray-800">
@@ -163,7 +163,7 @@ export default function EditServicesPage() {
             disabled={isSaving}
             className="w-full h-12 rounded-2xl bg-primary text-white font-heading font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
           >
-            {isSaving && <Loader2 size={16} className="animate-spin" />}
+            {isSaving && <SpinnerGap size={16} weight="bold" className="animate-spin" />}
             {isSaving ? t('profile.saving') : t('profile.save')}
           </button>
         </>

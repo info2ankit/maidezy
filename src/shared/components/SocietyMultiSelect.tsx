@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Search, Building2, Check, ChevronDown } from 'lucide-react'
+import { X, MagnifyingGlass, Buildings, Check, CaretDown } from '@phosphor-icons/react'
 import { cn } from '@/shared/utils/cn'
 import type { Society } from '@/shared/types'
 
@@ -46,14 +46,14 @@ export default function SocietyMultiSelect({
           disabled && 'opacity-50 cursor-not-allowed',
         )}
       >
-        <Building2 size={18} className={selectedIds.length > 0 ? 'text-primary' : 'text-gray-400'} />
+        <Buildings size={18} weight={selectedIds.length > 0 ? 'duotone' : 'regular'} className={selectedIds.length > 0 ? 'text-primary' : 'text-gray-400'} />
         <span className={cn(
           'flex-1 font-body font-semibold text-sm truncate',
           selectedIds.length > 0 ? 'text-primary' : 'text-gray-400',
         )}>
           {triggerLabel}
         </span>
-        <ChevronDown size={16} className="text-gray-400 shrink-0" />
+        <CaretDown size={16} weight="bold" className="text-gray-400 shrink-0" />
       </button>
 
       {/* Selected chips — visible below trigger when multiple are chosen */}
@@ -71,7 +71,7 @@ export default function SocietyMultiSelect({
                 className="hover:bg-primary/20 rounded-full"
                 aria-label={`Remove ${s.name}`}
               >
-                <X size={12} />
+                <X size={12} weight="bold" />
               </button>
             </span>
           ))}
@@ -130,14 +130,14 @@ function SocietyPickerSheet({ societies, selectedIds, onChange, onClose }: Sheet
             {t('onboarding.step1.society_label')}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
+            <X size={20} weight="bold" />
           </button>
         </div>
 
         {/* Search */}
         <div className="px-5 py-3 border-b border-gray-100 shrink-0">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlass size={16} weight="regular" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={query}
@@ -176,7 +176,7 @@ function SocietyPickerSheet({ societies, selectedIds, onChange, onClose }: Sheet
                           ? 'border-primary bg-primary text-white'
                           : 'border-gray-300',
                       )}>
-                        {isSelected && <Check size={14} strokeWidth={3} />}
+                        {isSelected && <Check size={14} weight="bold" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-heading font-semibold text-gray-800 text-sm truncate">

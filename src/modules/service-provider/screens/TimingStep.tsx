@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { X, AlertCircle } from 'lucide-react'
+import { X, WarningCircle } from '@phosphor-icons/react'
 import { useWorkerProfileStore } from '@/shared/stores/workerProfileStore'
 import { TIME_SLOTS, WORKING_DAYS, DISPLAY_TIMES } from '@/shared/constants/timeSlots'
 import type { WorkingDayId } from '@/shared/constants/timeSlots'
@@ -61,7 +61,7 @@ export default function TimingStep() {
       {/* Shift error */}
       {errors.shifts && (
         <div className="flex items-start gap-2 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5 mb-4">
-          <AlertCircle size={16} className="text-danger mt-0.5 shrink-0" />
+          <WarningCircle size={18} weight="duotone" className="text-danger mt-0.5 shrink-0" />
           <p className="text-sm font-body text-danger-dark">{t(errors.shifts)}</p>
         </div>
       )}
@@ -137,7 +137,7 @@ function ShiftRow({
             className="w-7 h-7 rounded-full bg-gray-100 hover:bg-danger-light text-gray-400 hover:text-danger flex items-center justify-center transition-colors"
             aria-label={t('profile.remove_shift')}
           >
-            <X size={14} />
+            <X size={14} weight="bold" />
           </button>
         )}
       </div>

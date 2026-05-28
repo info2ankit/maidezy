@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bell } from 'lucide-react'
+import { BellRinging } from '@phosphor-icons/react'
 import { useBookingStore } from '@/shared/stores/bookingStore'
 import { useProvider } from '../components/ProviderContext'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
@@ -35,7 +35,7 @@ export default function BookingRequestScreen() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-4">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <Bell size={28} className="text-gray-300" />
+          <BellRinging size={32} weight="duotone" className="text-gray-300" />
         </div>
         <p className="font-heading font-bold text-gray-500 text-lg">{t('booking.no_pending')}</p>
       </div>

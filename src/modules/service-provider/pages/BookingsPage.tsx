@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays, MapPin, IndianRupee } from 'lucide-react'
+import { CalendarX, MapPin, CurrencyInr, CalendarBlank } from '@phosphor-icons/react'
 import { fetchBookingsByProvider, type BookingWithResident } from '@/shared/services/bookingService'
 import { useProvider } from '../components/ProviderContext'
 import { cn } from '@/shared/utils/cn'
@@ -75,7 +75,7 @@ export default function BookingsPage() {
 
       {isLoading ? <LoadingSpinner /> : filtered.length === 0 ? (
         <EmptyState
-          icon={CalendarDays}
+          icon={CalendarX}
           title={t('bookings.no_bookings')}
           description={filter === 'all' ? t('bookings.empty_desc') : t('bookings.try_filter')}
         />
@@ -87,7 +87,7 @@ export default function BookingsPage() {
                 <div>
                   <p className="font-body font-semibold text-gray-800">{b.resident.user.name ?? t('profile.resident')}</p>
                   <p className="font-body text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                    <MapPin size={11} />
+                    <MapPin size={12} weight="duotone" />
                     {b.resident.block ? `${b.resident.block}-` : ''}{b.resident.flat_no}
                   </p>
                 </div>
@@ -97,13 +97,13 @@ export default function BookingsPage() {
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500 font-body pt-2 border-t border-gray-100 flex-wrap">
                 <span className="flex items-center gap-1">
-                  <CalendarDays size={11} />
+                  <CalendarBlank size={12} weight="duotone" />
                   {new Date(b.start_date).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })}
                   {b.end_date && ` – ${new Date(b.end_date).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })}`}
                 </span>
                 {b.amount && (
                   <span className="flex items-center gap-1 font-semibold text-primary">
-                    <IndianRupee size={11} />{b.amount}
+                    <CurrencyInr size={12} weight="bold" />{b.amount}
                   </span>
                 )}
               </div>

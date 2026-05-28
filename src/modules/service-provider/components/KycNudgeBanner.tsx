@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { ShieldCheck, ShieldAlert, CheckCircle2, Circle, Lock, Clock } from 'lucide-react'
+import { ShieldCheck, ShieldWarning, CheckCircle, Circle, Lock, HourglassMedium } from '@phosphor-icons/react'
 import type { KycStatus } from '@/shared/types'
 
 interface Props {
@@ -21,7 +21,7 @@ export default function KycNudgeBanner({ status }: Props) {
       <div className="mb-4 rounded-2xl bg-white border border-gray-100 shadow-sm px-5 py-4">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-            <Clock size={22} className="text-primary" />
+            <HourglassMedium size={22} weight="duotone" className="text-primary" />
           </div>
           <div>
             <p className="font-heading font-bold text-gray-800 text-base leading-tight">
@@ -35,11 +35,11 @@ export default function KycNudgeBanner({ status }: Props) {
 
         {/* Minimal step trail in muted colours */}
         <div className="flex items-center gap-0 mb-4">
-          <StepMuted icon={<CheckCircle2 size={15} className="text-primary" />} label={t('kyc.step_profile')} done />
+          <StepMuted icon={<CheckCircle size={15} weight="fill" className="text-primary" />} label={t('kyc.step_profile')} done />
           <ConnectorMuted done />
-          <StepMuted icon={<Clock size={15} className="text-primary animate-pulse" />} label={t('kyc.step_kyc')} active />
+          <StepMuted icon={<HourglassMedium size={15} weight="duotone" className="text-primary animate-pulse" />} label={t('kyc.step_kyc')} active />
           <ConnectorMuted />
-          <StepMuted icon={<Lock size={13} className="text-gray-300" />} label={t('kyc.step_earn')} faded />
+          <StepMuted icon={<Lock size={13} weight="duotone" className="text-gray-300" />} label={t('kyc.step_earn')} faded />
         </div>
 
         <Link
@@ -69,8 +69,8 @@ export default function KycNudgeBanner({ status }: Props) {
         <div className="flex items-start gap-3 mb-3">
           <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
             {isRejected
-              ? <ShieldAlert size={22} className="text-white" />
-              : <ShieldCheck size={22} className="text-white" />}
+              ? <ShieldWarning size={22} weight="fill" className="text-white" />
+              : <ShieldCheck size={22} weight="fill" className="text-white" />}
           </div>
           <div>
             <p className="font-heading font-bold text-white text-base leading-tight">
@@ -84,11 +84,11 @@ export default function KycNudgeBanner({ status }: Props) {
 
         {!isRejected && (
           <div className="flex items-center gap-0 mb-4 mt-2">
-            <Step icon={<CheckCircle2 size={16} className="text-white" />} label={t('kyc.step_profile')} done />
+            <Step icon={<CheckCircle size={16} weight="fill" className="text-white" />} label={t('kyc.step_profile')} done />
             <Connector />
-            <Step icon={<Circle size={16} className="text-white fill-white/30" />} label={t('kyc.step_kyc')} active />
+            <Step icon={<Circle size={16} weight="fill" className="text-white/40" />} label={t('kyc.step_kyc')} active />
             <Connector faded />
-            <Step icon={<Lock size={14} className="text-white/50" />} label={t('kyc.step_earn')} faded />
+            <Step icon={<Lock size={14} weight="duotone" className="text-white/50" />} label={t('kyc.step_earn')} faded />
           </div>
         )}
 

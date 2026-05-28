@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Camera, ImageIcon, FileCheck, Loader2, CheckCircle2,
-  AlertCircle, FileText, FileWarning,
-} from 'lucide-react'
+  Camera, Image, SealCheck, SpinnerGap, CheckCircle,
+  Warning, IdentificationCard, WarningCircle,
+} from '@phosphor-icons/react'
 import { uploadKycFile, upsertKycDocument, fetchKycByUserId } from '@/shared/services/kycService'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { useProvider } from '../components/ProviderContext'
@@ -92,8 +92,8 @@ function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
           existingUrl ? 'bg-success/10' : 'bg-primary/10',
         ].join(' ')}>
           {existingUrl
-            ? <CheckCircle2 size={20} className="text-success" />
-            : <FileText size={18} className="text-primary" />}
+            ? <CheckCircle size={20} weight="fill" className="text-success" />
+            : <IdentificationCard size={18} weight="duotone" className="text-primary" />}
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-body font-semibold text-gray-800">{t('kyc.aadhaar')}</p>
@@ -105,7 +105,7 @@ function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
         isPdf ? (
           <a href={existingUrl} target="_blank" rel="noopener noreferrer"
             className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:bg-gray-100 transition-colors">
-            <FileText size={28} className="text-primary shrink-0" />
+            <IdentificationCard size={28} weight="duotone" className="text-primary shrink-0" />
             <div className="min-w-0">
               <p className="font-body text-sm font-semibold text-gray-800">{t('kyc.pdf_uploaded')}</p>
               <p className="font-body text-xs text-accent underline">{t('kyc.view_pdf')}</p>
@@ -121,7 +121,7 @@ function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
 
       {error && (
         <div className="flex items-start gap-2 text-xs text-danger font-body mx-4 mb-3 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5">
-          <FileWarning size={14} className="mt-0.5 shrink-0" />
+          <WarningCircle size={14} weight="duotone" className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -137,7 +137,7 @@ function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
         {isTouchDevice && (
           <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
             className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
-            {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+            {uploading ? <SpinnerGap size={20} weight="bold" className="animate-spin" /> : <Camera size={20} weight="duotone" />}
             <span className="font-body text-xs font-semibold">
               {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
             </span>
@@ -145,7 +145,7 @@ function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
         )}
         <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
           className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
-          {uploading && !isTouchDevice ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+          {uploading && !isTouchDevice ? <SpinnerGap size={18} weight="bold" className="animate-spin" /> : <Image size={18} weight="duotone" />}
           <span className="font-body text-sm font-semibold">
             {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
           </span>
@@ -223,8 +223,8 @@ function PhotoSlot({ existingUrl, onUploaded }: PhotoSlotProps) {
             existingUrl ? 'bg-success/10' : 'bg-primary/10',
           ].join(' ')}>
             {existingUrl
-              ? <CheckCircle2 size={20} className="text-success" />
-              : <Camera size={18} className="text-primary" />}
+              ? <CheckCircle size={20} weight="fill" className="text-success" />
+              : <Camera size={18} weight="duotone" className="text-primary" />}
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-body font-semibold text-gray-800">{t('kyc.photo')}</p>
@@ -243,7 +243,7 @@ function PhotoSlot({ existingUrl, onUploaded }: PhotoSlotProps) {
 
         {error && (
           <div className="flex items-start gap-2 text-xs text-danger font-body mx-4 mb-3 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5">
-            <FileWarning size={14} className="mt-0.5 shrink-0" />
+            <WarningCircle size={14} weight="duotone" className="mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -259,7 +259,7 @@ function PhotoSlot({ existingUrl, onUploaded }: PhotoSlotProps) {
           {isTouchDevice && (
             <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
               className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
-              {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+              {uploading ? <SpinnerGap size={20} weight="bold" className="animate-spin" /> : <Camera size={20} weight="duotone" />}
               <span className="font-body text-xs font-semibold">
                 {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
               </span>
@@ -267,7 +267,7 @@ function PhotoSlot({ existingUrl, onUploaded }: PhotoSlotProps) {
           )}
           <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
             className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
-            {uploading && !isTouchDevice ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+            {uploading && !isTouchDevice ? <SpinnerGap size={18} weight="bold" className="animate-spin" /> : <Image size={18} weight="duotone" />}
             <span className="font-body text-sm font-semibold">
               {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
             </span>
@@ -323,7 +323,7 @@ export default function KycPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <FileCheck size={20} className="text-primary" />
+            <SealCheck size={20} weight="duotone" className="text-primary" />
           </div>
           <div>
             <p className="font-body font-semibold text-gray-800">{t('kyc.status_title')}</p>
@@ -340,7 +340,7 @@ export default function KycPage() {
 
       {error && (
         <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-4 text-sm font-body text-danger-dark flex items-start gap-2">
-          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <Warning size={16} weight="duotone" className="shrink-0 mt-0.5" />
           {error}
         </div>
       )}

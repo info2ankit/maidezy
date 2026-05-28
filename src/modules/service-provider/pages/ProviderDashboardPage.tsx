@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays, MapPin, ToggleLeft, ToggleRight, Loader2, Clock, Star } from 'lucide-react'
+import { CalendarX, MapPin, ToggleLeft, ToggleRight, SpinnerGap, Clock, Star } from '@phosphor-icons/react'
 import { Link } from 'react-router-dom'
 import { fetchTodayBookings, type BookingWithResident } from '@/shared/services/bookingService'
 import { setProviderAvailability } from '@/shared/services/serviceProviderService'
@@ -72,11 +72,11 @@ export default function ProviderDashboardPage() {
             className="shrink-0 disabled:opacity-50"
           >
             {toggling ? (
-              <Loader2 size={28} className="animate-spin" />
+              <SpinnerGap size={28} weight="bold" className="animate-spin" />
             ) : provider.availability ? (
-              <ToggleRight size={36} className="text-accent" />
+              <ToggleRight size={40} weight="fill" className="text-accent" />
             ) : (
-              <ToggleLeft size={36} className="text-white/40" />
+              <ToggleLeft size={40} weight="regular" className="text-white/40" />
             )}
           </button>
         </div>
@@ -121,7 +121,7 @@ export default function ProviderDashboardPage() {
         )}
 
         <div className="mt-3 pt-3 border-t border-gray-100 flex items-start justify-between gap-3">
-          <p className="font-body text-xs text-gray-400 flex items-center gap-1 pt-0.5"><Clock size={11} />{t('dashboard.slots')}</p>
+          <p className="font-body text-xs text-gray-400 flex items-center gap-1 pt-0.5"><Clock size={12} weight="duotone" />{t('dashboard.slots')}</p>
           <div className="flex flex-wrap gap-1 justify-end">
             {provider.availability_slots.length === 0 ? (
               <span className="text-xs text-gray-400 font-body">{t('dashboard.none_set')}</span>
@@ -135,7 +135,7 @@ export default function ProviderDashboardPage() {
 
         {provider.rating > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-1">
-            <Star size={14} className="fill-accent text-accent" />
+            <Star size={14} weight="fill" className="text-accent" />
             <span className="font-body font-semibold text-sm">{provider.rating.toFixed(1)}</span>
             <span className="font-body text-xs text-gray-400">{t('dashboard.rating')}</span>
           </div>
@@ -155,7 +155,7 @@ export default function ProviderDashboardPage() {
       )}
 
       {isLoading ? <LoadingSpinner /> : bookings.length === 0 ? (
-        <EmptyState icon={CalendarDays} title={t('dashboard.no_bookings')} description={t('dashboard.day_off')} />
+        <EmptyState icon={CalendarX} title={t('dashboard.no_bookings')} description={t('dashboard.day_off')} />
       ) : (
         <div className="space-y-3">
           {bookings.map((b) => (
@@ -164,7 +164,7 @@ export default function ProviderDashboardPage() {
                 <div>
                   <p className="font-body font-semibold text-gray-800">{b.resident.user.name ?? t('profile.resident')}</p>
                   <p className="font-body text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                    <MapPin size={11} />
+                    <MapPin size={12} weight="duotone" />
                     {b.resident.block ? `${b.resident.block}-` : ''}{b.resident.flat_no}
                   </p>
                 </div>

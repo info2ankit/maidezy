@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Pencil, Check, X, Loader2 } from 'lucide-react'
+import { PencilSimple, Check, X, SpinnerGap } from '@phosphor-icons/react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useProvider } from '../components/ProviderContext'
@@ -128,7 +128,7 @@ export default function ProviderProfilePage() {
                     disabled={nameSaving}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-body font-semibold disabled:opacity-50"
                   >
-                    {nameSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                    {nameSaving ? <SpinnerGap size={14} weight="bold" className="animate-spin" /> : <Check size={14} weight="bold" />}
                     {t('profile.save')}
                   </button>
                   <button
@@ -136,7 +136,7 @@ export default function ProviderProfilePage() {
                     onClick={cancelEditName}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white text-xs font-body font-semibold"
                   >
-                    <X size={12} />
+                    <X size={14} weight="bold" />
                     {t('profile.back')}
                   </button>
                 </div>
@@ -152,7 +152,7 @@ export default function ProviderProfilePage() {
                   className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
                   aria-label={t('profile.edit')}
                 >
-                  <Pencil size={13} className="text-white/80" />
+                  <PencilSimple size={15} weight="bold" className="text-white/80" />
                 </button>
               </div>
             )}
