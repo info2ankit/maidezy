@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { User, MapPin, Buildings, Clock, CalendarBlank, GenderIntersex, House } from '@phosphor-icons/react'
 import { useWorkerProfileStore } from '@/shared/stores/workerProfileStore'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { useProvider } from '../components/ProviderContext'
@@ -62,25 +63,43 @@ export default function ProfilePreviewScreen() {
       }}
     >
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-        {/* Name */}
+        {/* Name + Gender + Address */}
         {setupForm.workerName && (
-          <div className="px-4 py-4 border-b border-gray-50">
-            <p className="font-body text-xs text-gray-400 mb-1">{t('profile.name_title')}</p>
-            <p className="font-body text-sm font-semibold text-gray-800">👤 {setupForm.workerName}</p>
+          <div className="px-4 py-4 border-b border-gray-50 space-y-2">
+            <div className="flex items-center gap-2">
+              <User size={15} weight="duotone" className="text-gray-400 shrink-0" />
+              <p className="font-body text-sm font-semibold text-gray-800">{setupForm.workerName}</p>
+            </div>
+            {setupForm.gender && (
+              <div className="flex items-center gap-2">
+                <GenderIntersex size={15} weight="duotone" className="text-gray-400 shrink-0" />
+                <p className="font-body text-sm text-gray-700">{t(`profile.gender_${setupForm.gender}`)}</p>
+              </div>
+            )}
+            {setupForm.address && (
+              <div className="flex items-start gap-2">
+                <House size={15} weight="duotone" className="text-gray-400 shrink-0 mt-0.5" />
+                <p className="font-body text-sm text-gray-700">{setupForm.address}</p>
+              </div>
+            )}
           </div>
         )}
 
         {/* City + Societies */}
         <div className="px-4 py-4 border-b border-gray-50">
           <p className="font-body text-xs text-gray-400 mb-2">{t('profile.city_subtitle')}</p>
-          <p className="font-body text-sm font-medium text-gray-800 mb-2">📍 {setupForm.cityName}</p>
-          <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin size={15} weight="duotone" className="text-gray-400 shrink-0" />
+            <p className="font-body text-sm font-medium text-gray-800">{setupForm.cityName}</p>
+          </div>
+          <div className="space-y-1.5">
             {setupForm.societyIds.map((id) => {
               const soc = societies.find((s) => s.id === id)
               return (
-                <p key={id} className="font-body text-sm text-gray-700">
-                  🏘️ {soc ? soc.name : id}
-                </p>
+                <div key={id} className="flex items-center gap-2">
+                  <Buildings size={14} weight="duotone" className="text-gray-400 shrink-0" />
+                  <p className="font-body text-sm text-gray-700">{soc ? soc.name : id}</p>
+                </div>
               )
             })}
           </div>
@@ -92,9 +111,11 @@ export default function ProfilePreviewScreen() {
           <div className="flex flex-wrap gap-2">
             {setupForm.selectedServices.map((id) => {
               const def = SERVICE_TYPE_BY_ID[id]
+              const ServiceIcon = def.icon
               return (
-                <span key={id} className="inline-flex items-center gap-1 bg-orange-50 text-accent rounded-full px-2.5 py-1 text-xs font-body font-medium border border-orange-100">
-                  {def.emoji} {t(def.labelKey)}
+                <span key={id} className="inline-flex items-center gap-1.5 bg-orange-50 text-accent rounded-full px-3 py-1 text-xs font-body font-semibold border border-orange-100">
+                  <ServiceIcon size={13} weight="fill" />
+                  {t(def.labelKey)}
                 </span>
               )
             })}
@@ -104,14 +125,20 @@ export default function ProfilePreviewScreen() {
         {/* Shifts */}
         <div className="px-4 py-4 border-b border-gray-50">
           <p className="font-body text-xs text-gray-400 mb-2">{t('profile.timing_title')}</p>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {setupForm.shifts.map((sh, i) => (
-              <p key={i} className="font-body text-sm text-gray-700">
-                ⏰ {DISPLAY_TIMES[sh.start] ?? sh.start} – {DISPLAY_TIMES[sh.end] ?? sh.end}
-              </p>
+              <div key={i} className="flex items-center gap-2">
+                <Clock size={14} weight="duotone" className="text-gray-400 shrink-0" />
+                <p className="font-body text-sm text-gray-700">
+                  {DISPLAY_TIMES[sh.start] ?? sh.start} – {DISPLAY_TIMES[sh.end] ?? sh.end}
+                </p>
+              </div>
             ))}
           </div>
-          <p className="font-body text-sm text-gray-500 mt-1.5">📅 {dayLabels}</p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <CalendarBlank size={14} weight="duotone" className="text-gray-400 shrink-0" />
+            <p className="font-body text-sm text-gray-500">{dayLabels}</p>
+          </div>
         </div>
 
         {/* Pricing */}
@@ -120,10 +147,14 @@ export default function ProfilePreviewScreen() {
           {setupForm.selectedServices.map((id) => {
             const p = setupForm.pricing[id]
             const def = SERVICE_TYPE_BY_ID[id]
+            const ServiceIcon = def.icon
             if (!p) return null
             return (
               <div key={id} className="flex items-center justify-between py-1.5">
-                <span className="font-body text-sm text-gray-700">{def.emoji} {t(def.labelKey)}</span>
+                <div className="flex items-center gap-2">
+                  <ServiceIcon size={14} weight="duotone" className="text-gray-400 shrink-0" />
+                  <span className="font-body text-sm text-gray-700">{t(def.labelKey)}</span>
+                </div>
                 <span className="font-heading font-semibold text-sm text-gray-800 tabular-nums">
                   {p.monthly > 0 ? `₹${p.monthly.toLocaleString('en-IN')}/mo` : ''}
                   {p.monthly > 0 && p.perVisit > 0 ? '  ' : ''}

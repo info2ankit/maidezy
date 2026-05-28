@@ -7,6 +7,7 @@ import type { WorkingDayId } from '@/shared/constants/timeSlots'
 import type { WorkerShift } from '@/shared/types/worker.types'
 import {
   saveWorkerName,
+  saveWorkerGenderAddress,
   ensureServiceProviderRow,
   saveWorkerServices,
   saveWorkerPricing,
@@ -17,8 +18,12 @@ export const SETUP_TOTAL_STEPS = 4
 
 interface PricingEntry { monthly: number; perVisit: number }
 
+type Gender = 'male' | 'female' | 'other'
+
 interface SetupForm {
   workerName:       string
+  gender:           Gender | ''
+  address:          string
   cityName:         string
   societyIds:       string[]
   selectedServices: ServiceTypeId[]
@@ -38,6 +43,8 @@ interface WorkerProfileState {
 interface WorkerProfileActions {
   // Step 1
   setName:       (name: string) => void
+  setGender:     (gender: Gender) => void
+  setAddress:    (address: string) => void
   setCity:       (city: string) => void
   toggleSociety: (id: string) => void
   // Step 2
@@ -63,6 +70,8 @@ const DEFAULT_SHIFT: WorkerShift = { start: '07:00', end: '10:00' }
 
 const INITIAL_FORM: SetupForm = {
   workerName:       '',
+  gender:           '',
+  address:          '',
   cityName:         '',
   societyIds:       [],
   selectedServices: [],
@@ -86,6 +95,24 @@ export const useWorkerProfileStore = create<WorkerProfileState & WorkerProfileAc
             ...s.setupForm,
             workerName: name,
             errors:     { ...s.setupForm.errors, name: '' },
+          },
+        })),
+
+      setGender: (gender) =>
+        set((s) => ({
+          setupForm: {
+            ...s.setupForm,
+            gender,
+            errors: { ...s.setupForm.errors, gender: '' },
+          },
+        })),
+
+      setAddress: (address) =>
+        set((s) => ({
+          setupForm: {
+            ...s.setupForm,
+            address,
+            errors: { ...s.setupForm.errors, address: '' },
           },
         })),
 
@@ -226,6 +253,12 @@ export const useWorkerProfileStore = create<WorkerProfileState & WorkerProfileAc
           if (!setupForm.workerName.trim()) {
             errors.name = 'errors.enter_name'
           }
+          if (!setupForm.gender) {
+            errors.gender = 'errors.select_gender'
+          }
+          if (!setupForm.address.trim()) {
+            errors.address = 'errors.enter_address'
+          }
           if (!setupForm.cityName) {
             errors.city = 'errors.select_city'
           }
@@ -269,6 +302,10 @@ export const useWorkerProfileStore = create<WorkerProfileState & WorkerProfileAc
         try {
           await saveWorkerName(workerId, setupForm.workerName)
           await ensureServiceProviderRow(workerId, setupForm.societyIds)
+          await saveWorkerGenderAddress(workerId, {
+            gender:  setupForm.gender || null,
+            address: setupForm.address.trim() || null,
+          })
           await saveWorkerServices(workerId, setupForm.selectedServices)
           await saveWorkerPricing(workerId, setupForm.pricing as Record<ServiceTypeId, PricingEntry>)
           await saveWorkerAvailability(workerId, {
@@ -288,7 +325,7 @@ export const useWorkerProfileStore = create<WorkerProfileState & WorkerProfileAc
     }),
     {
       name: 'maidezy_worker_profile_setup',
-      version: 5,
+      version: 6,
       migrate: () => ({ setupForm: INITIAL_FORM }),
       partialize: (state) => ({ setupForm: state.setupForm }),
     },

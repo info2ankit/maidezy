@@ -12,6 +12,7 @@ export const ROUTES = {
   LOGIN: '/login',
   SUPER_ADMIN: '/super-admin',
   RWA_ADMIN: '/rwa-admin',
+  WORKER_ADMIN: '/worker-admin',
   SERVICE_PROVIDER: '/provider',
   RESIDENT: '/resident',
 } as const

@@ -1,83 +1,108 @@
+import { RecaptchaVerifier, signInWithPhoneNumber, signOut as firebaseSignOut } from 'firebase/auth'
+import type { ConfirmationResult } from 'firebase/auth'
+import { firebaseAuth } from '@/lib/firebase'
 import { supabase } from '@/lib/supabase'
 import type { User, Role } from '@/shared/types'
 
-// Default role for brand-new users created via OTP.
 type SignupRole = Extract<Role, 'resident' | 'service_provider'>
 
-// ─── Bypass mode ──────────────────────────────────────────────────────────────
-// When VITE_APP_ENV=development:
-//   - No SMS is sent. Any 6-digit code is accepted.
-//   - Uses Supabase Anonymous Sign-in (no email or phone provider needed).
-//   - REQUIRED: Enable "Anonymous Sign Ins" in Supabase → Auth → Providers.
-//
-// To switch to production SMS (MSG91 / Fast2SMS via Supabase Phone):
-//   1. Set VITE_APP_ENV=production in .env.local
-//   2. Enable Phone provider in Supabase Auth with your SMS provider keys
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Module-level state ───────────────────────────────────────────────────────
+// Kept here so sendOtp and verifyOtp share state without prop-drilling.
 
-const isBypassMode = import.meta.env.VITE_APP_ENV !== 'production'
+let pendingConfirmation: ConfirmationResult | null = null
+let recaptchaVerifier:   RecaptchaVerifier  | null = null
+
+// ─── reCAPTCHA ────────────────────────────────────────────────────────────────
+// Invisible reCAPTCHA is required by Firebase Phone Auth (web).
+// It attaches to document.body so no special div is needed in the UI.
+
+function getRecaptchaVerifier(): RecaptchaVerifier {
+  if (!recaptchaVerifier) {
+    const container = document.getElementById('recaptcha-container')!
+    recaptchaVerifier = new RecaptchaVerifier(firebaseAuth, container, {
+      size: 'invisible',
+    })
+  }
+  return recaptchaVerifier
+}
+
+function resetRecaptchaVerifier() {
+  try { recaptchaVerifier?.clear() } catch (_) { /* ignore */ }
+  recaptchaVerifier = null
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function sendOtp(mobile: string): Promise<{ error?: string }> {
-  if (isBypassMode) {
-    await new Promise((r) => setTimeout(r, 800)) // simulate network latency
+  resetRecaptchaVerifier()
+  try {
+    const verifier = getRecaptchaVerifier()
+    pendingConfirmation = await signInWithPhoneNumber(firebaseAuth, `+91${mobile}`, verifier)
     return {}
+  } catch (e: unknown) {
+    resetRecaptchaVerifier()
+    return { error: (e as Error).message ?? 'Failed to send OTP. Check Firebase setup.' }
   }
-
-  const { error } = await supabase.auth.signInWithOtp({ phone: `+91${mobile}` })
-  return error ? { error: error.message } : {}
 }
 
 export async function verifyOtp(
-  mobile: string,
-  token: string,
-  signupRole: SignupRole = 'resident'
+  mobile:     string,
+  token:      string,
+  signupRole: SignupRole = 'resident',
 ): Promise<{ user?: User; error?: string }> {
-  if (isBypassMode) {
-    if (!/^\d{6}$/.test(token)) {
-      return { error: 'Enter a valid 6-digit code' }
+  if (!pendingConfirmation) {
+    return { error: 'Session expired. Please request a new OTP.' }
+  }
+
+  try {
+    const result     = await pendingConfirmation.confirm(token)
+    const firebaseUid = result.user.uid
+    pendingConfirmation = null
+
+    // Use Firebase UID as the Supabase password.
+    // Firebase UID is stable per phone number (issued only after OTP verification),
+    // so the same phone always maps to the same Supabase account. This ensures
+    // auth.uid() is stable across sessions, which is required for RLS to work.
+    const email    = `${mobile}@firebase.maidezy.app`
+    const password = firebaseUid
+
+    let authId: string
+
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (!signInError && signInData.user) {
+      authId = signInData.user.id
+    } else {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
+      if (signUpError || !signUpData.user) {
+        return { error: signUpError?.message ?? 'Account creation failed' }
+      }
+      authId = signUpData.user.id
     }
 
-    // Sign in anonymously — gives a valid Supabase session without any provider.
-    // Each anonymous sign-in creates a new auth user, so we look up the profile
-    // by mobile number and reuse it (updating the linked auth ID).
-    const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously()
-
-    if (anonError || !anonData.user) {
-      return { error: anonError?.message ?? 'Anonymous sign-in failed. Enable Anonymous Sign Ins in Supabase Auth.' }
-    }
-
-    const user = await resolveProfileByMobile(anonData.user.id, mobile, signupRole)
+    const user = await resolveProfileByMobile(authId, mobile, signupRole)
     return { user }
+  } catch (e: unknown) {
+    const msg = (e as Error).message ?? 'OTP verification failed'
+    if (msg.includes('invalid-verification-code')) return { error: 'Incorrect OTP. Please try again.' }
+    if (msg.includes('code-expired'))              return { error: 'OTP expired. Please request a new one.' }
+    return { error: msg }
   }
-
-  // ── Production: real Supabase Phone OTP ──
-  const { data, error } = await supabase.auth.verifyOtp({
-    phone: `+91${mobile}`,
-    token,
-    type: 'sms',
-  })
-
-  if (error || !data.user) {
-    return { error: error?.message ?? 'Verification failed' }
-  }
-
-  const user = await resolveProfileByMobile(data.user.id, mobile, signupRole)
-  return { user }
 }
 
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut()
+  await Promise.all([
+    supabase.auth.signOut(),
+    firebaseSignOut(firebaseAuth),
+  ])
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Looks up user by mobile number first (stable across anonymous sessions),
-// then falls back to auth ID. Creates a new profile if neither exists.
-// signupRole is only used for NEW user creation; existing users keep their role.
 async function resolveProfileByMobile(
-  authId: string,
-  mobile: string,
-  signupRole: SignupRole
+  authId:     string,
+  mobile:     string,
+  signupRole: SignupRole,
 ): Promise<User> {
   // 1. Check if a profile with this mobile already exists
   const { data: byMobile } = await supabase
@@ -86,17 +111,49 @@ async function resolveProfileByMobile(
     .eq('mobile', mobile)
     .maybeSingle()
 
-  if (byMobile) return byMobile as User
+  if (byMobile) {
+    // If the auth session ID differs from the stored ID (happens when switching
+    // from anonymous to Firebase email auth), sync it via a SECURITY DEFINER
+    // RPC so RLS policies that check auth.uid() = users.id keep working.
+    if (byMobile.id !== authId) {
+      await supabase.rpc('sync_user_auth_id', { p_mobile: mobile, p_new_id: authId })
+    }
+    return { ...byMobile, id: authId } as User
+  }
 
-  // 2. No existing mobile record — create fresh profile linked to this auth ID
+  // 2. Check if super admin pre-created a Worker Admin invite for this mobile
+  const { data: invite } = await supabase
+    .from('worker_admin_invites')
+    .select('*')
+    .eq('mobile', mobile)
+    .maybeSingle()
+
+  const role = invite ? 'worker_admin' : signupRole
+  const name = invite?.name ?? undefined
+
+  // 3. Create the profile
   const { data: created, error } = await supabase
     .from('users')
-    .insert({ id: authId, mobile, role: signupRole, is_active: true })
+    .insert({ id: authId, mobile, role, ...(name ? { name } : {}), is_active: true })
     .select()
     .single()
 
   if (error || !created) {
     throw new Error(error?.message ?? 'Failed to create user profile')
+  }
+
+  // 4. If invited as worker_admin — link gender + societies and clean up the invite
+  if (invite) {
+    await supabase
+      .from('worker_admins')
+      .upsert(
+        { user_id: authId, gender: invite.gender, society_ids: invite.society_ids ?? [] },
+        { onConflict: 'user_id' },
+      )
+    await supabase
+      .from('worker_admin_invites')
+      .delete()
+      .eq('mobile', mobile)
   }
 
   return created as User

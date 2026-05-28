@@ -1,4 +1,4 @@
-export type Role = 'super_admin' | 'rwa_admin' | 'service_provider' | 'resident'
+export type Role = 'super_admin' | 'rwa_admin' | 'worker_admin' | 'service_provider' | 'resident'
 
 /**
  * pending   — no documents uploaded yet (red — worker hasn't started)
@@ -99,6 +99,8 @@ export interface ServiceProvider {
   cooking_max_meals:    1 | 2 | null
   buffer_minutes:       15 | 30 | 45 | null
   max_bookings_per_day: 2 | 3 | 4 | 5 | null
+  gender:  'male' | 'female' | 'other' | null
+  address: string | null
 }
 
 // Provider row joined with its services — what most UI consumes

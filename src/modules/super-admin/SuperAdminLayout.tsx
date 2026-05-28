@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import DashboardPage from './pages/DashboardPage'
 import SocietiesPage from './pages/SocietiesPage'
 import AdminsPage from './pages/AdminsPage'
+import WorkerAdminsPage from './pages/WorkerAdminsPage'
 import ReportsPage from './pages/ReportsPage'
 import LanguageToggle from '@/shared/components/LanguageToggle'
 
@@ -32,8 +33,9 @@ export default function SuperAdminLayout() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard"   element={<DashboardPage />} />
             <Route path="societies"   element={<SocietiesPage />} />
-            <Route path="admins"      element={<AdminsPage />} />
-            <Route path="reports"     element={<ReportsPage />} />
+            <Route path="admins"         element={<AdminsPage />} />
+            <Route path="worker-admins"  element={<WorkerAdminsPage />} />
+            <Route path="reports"        element={<ReportsPage />} />
             <Route path="*"           element={<Navigate to="dashboard" replace />} />
           </Routes>
         </div>

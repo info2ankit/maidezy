@@ -39,7 +39,7 @@ export async function fetchTodayBookings(providerId: string): Promise<BookingWit
 
 export async function createBookingRequest(data: {
   residentId:     string
-  workerId:       string
+  workerId:       string   // users.id of the worker
   serviceTypeIds: string[]
   arrivalTime:    string
   daysOfWeek:     WorkingDayId[]
@@ -48,12 +48,22 @@ export async function createBookingRequest(data: {
 }): Promise<BookingRequest> {
   const otpCode = String(Math.floor(100000 + Math.random() * 900000))
 
+  // bookings.provider_id FK → service_providers.id; look it up from users.id
+  const { data: sp, error: spErr } = await supabase
+    .from('service_providers')
+    .select('id')
+    .eq('user_id', data.workerId)
+    .maybeSingle()
+  if (spErr || !sp) throw new Error(spErr?.message ?? 'Worker profile not found')
+
   const { data: row, error } = await supabase
     .from('bookings')
     .insert({
       resident_id:      data.residentId,
-      worker_id:        data.workerId,
+      provider_id:      sp.id,
+      service_type:     data.serviceTypeIds[0] ?? null,
       service_type_ids: data.serviceTypeIds,
+      start_date:       new Date().toISOString().slice(0, 10),
       arrival_time:     data.arrivalTime,
       days_of_week:     data.daysOfWeek,
       pricing_mode:     data.pricingMode,
@@ -76,7 +86,7 @@ export async function acceptBooking(
     .from('bookings')
     .select('*')
     .eq('id', bookingId)
-    .eq('worker_id', workerId)
+    .eq('provider_id', workerId)
     .single()
 
   if (fetchErr || !booking) throw new Error('Booking not found')
@@ -115,7 +125,7 @@ export async function rejectBooking(
     .from('bookings')
     .update({ status: 'rejected' })
     .eq('id', bookingId)
-    .eq('worker_id', workerId)
+    .eq('provider_id', workerId)
     .select()
     .single()
 
@@ -127,7 +137,7 @@ export async function getPendingBookingsForWorker(workerId: string): Promise<Boo
   const { data, error } = await supabase
     .from('bookings')
     .select('*')
-    .eq('worker_id', workerId)
+    .eq('provider_id', workerId)
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
 
@@ -139,7 +149,7 @@ export async function getActiveBookingsForWorker(workerId: string): Promise<Book
   const { data, error } = await supabase
     .from('bookings')
     .select('*')
-    .eq('worker_id', workerId)
+    .eq('provider_id', workerId)
     .in('status', ['accepted', 'active'])
     .order('created_at', { ascending: false })
 
@@ -176,7 +186,7 @@ function mapBookingRow(row: any): BookingRequest {
     residentId:     row.resident_id,
     residentName:   row.resident_name ?? '',
     residentFlatNo: row.resident_flat_no ?? '',
-    workerId:       row.worker_id,
+    workerId:       row.provider_id,
     serviceTypeIds: row.service_type_ids ?? [],
     arrivalTime:    row.arrival_time,
     daysOfWeek:     row.days_of_week ?? [],

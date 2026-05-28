@@ -30,7 +30,15 @@
     "remove_shift": "शिफ्ट हटाएं",
     "name_title": "आपका नाम क्या है?",
     "name_placeholder": "पूरा नाम लिखें",
-    "city_title": "आप किस शहर में काम करती हैं?",
+    "gender_title": "लिंग",
+    "gender_male": "पुरुष",
+    "gender_female": "महिला",
+    "gender_other": "अन्य",
+    "gender_locked": "बदला नहीं जा सकता",
+    "address_title": "घर का पता",
+    "address_placeholder": "मकान नं., गली, इलाका...",
+    "personal_info_title": "व्यक्तिगत जानकारी",
+    "city_title": "आप किस शहर में काम करते हैं?",
     "city_subtitle": "शहर",
     "location_title": "शहर और सोसायटी",
     "contact_title": "संपर्क",
@@ -92,6 +100,8 @@
   },
   "errors": {
     "enter_name": "अपना नाम लिखें",
+    "select_gender": "अपना लिंग चुनें",
+    "enter_address": "अपना पता लिखें",
     "select_city": "अपना शहर चुनें",
     "select_society": "अपनी सोसायटी चुनें",
     "select_service": "कम से कम एक काम चुनें",
@@ -169,7 +179,9 @@
     "crop_hint": "ज़ूम करें · खींचकर सेट करें",
     "crop_save": "क्रॉप करें & सेव करें",
     "photo_crop_note": "गोल आकार में कटेगी",
-    "review_note": "आपके दस्तावेज़ जाँचे जा रहे हैं। प्रोफाइल verify होने पर आपको सूचित किया जाएगा।"
+    "review_note": "आपके दस्तावेज़ जाँचे जा रहे हैं। प्रोफाइल verify होने पर आपको सूचित किया जाएगा।",
+    "locked_title": "दस्तावेज़ लॉक हैं",
+    "locked_body": "आपका KYC सत्यापित हो चुका है। आधार और फोटो नहीं बदले जा सकते। बदलाव के लिए एडमिन से संपर्क करें।"
   },
   "bookings": {
     "title": "मेरी बुकिंग",

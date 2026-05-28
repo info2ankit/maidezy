@@ -18,6 +18,18 @@ export async function saveWorkerName(workerId: string, name: string): Promise<vo
   if (error) throw new Error(error.message)
 }
 
+export async function saveWorkerGenderAddress(
+  workerId: string,
+  data: { gender: string | null; address: string | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from('service_providers')
+    .update({ gender: data.gender, address: data.address })
+    .eq('user_id', workerId)
+
+  if (error) throw new Error(error.message)
+}
+
 export async function ensureServiceProviderRow(workerId: string, societyIds: string[]): Promise<void> {
   const primarySocietyId = societyIds[0] ?? null
 

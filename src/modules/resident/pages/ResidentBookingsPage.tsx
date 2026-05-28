@@ -1,0 +1,263 @@
+import { useEffect, useState } from 'react'
+import {
+  CalendarCheck, Clock, CurrencyInr, XCircle, SpinnerGap,
+  User as UserIcon, CheckCircle, Hourglass, Prohibit,
+} from '@phosphor-icons/react'
+import { useResidentStore } from '../stores/residentStore'
+import { fetchResidentBookings, cancelResidentBooking } from '../services/residentPortalService'
+import type { ResidentBookingRow } from '../services/residentPortalService'
+import LoadingSpinner from '@/shared/components/LoadingSpinner'
+import EmptyState from '@/shared/components/EmptyState'
+import ConfirmDialog from '@/shared/components/ConfirmDialog'
+
+type Tab = 'pending' | 'active' | 'history'
+
+const SERVICE_LABELS: Record<string, string> = {
+  maid: 'Maid', jhadu_pocha: 'Jhadu Pocha', bartan: 'Bartan',
+  cooking: 'Cooking', car_cleaning: 'Car Cleaning', laundry: 'Laundry',
+  child_care: 'Child Care', elder_care: 'Elder Care', deep_cleaning: 'Deep Cleaning', full_time: 'Full Time',
+}
+
+const SERVICE_PILL_COLORS: Record<string, string> = {
+  maid:          'bg-purple-100 text-purple-700',
+  jhadu_pocha:   'bg-blue-100 text-blue-700',
+  bartan:        'bg-teal-100 text-teal-700',
+  cooking:       'bg-orange-100 text-orange-700',
+  car_cleaning:  'bg-slate-100 text-slate-700',
+  laundry:       'bg-sky-100 text-sky-700',
+  child_care:    'bg-pink-100 text-pink-700',
+  elder_care:    'bg-rose-100 text-rose-700',
+  deep_cleaning: 'bg-green-100 text-green-700',
+  full_time:     'bg-indigo-100 text-indigo-700',
+}
+
+const DAY_SHORT: Record<string, string> = {
+  mon: 'M', tue: 'T', wed: 'W', thu: 'T', fri: 'F', sat: 'S', sun: 'S',
+}
+
+const DISPLAY_TIMES: Record<string, string> = {
+  '05:00': '5 AM', '06:00': '6 AM', '07:00': '7 AM', '08:00': '8 AM',
+  '09:00': '9 AM', '10:00': '10 AM', '11:00': '11 AM', '12:00': '12 PM',
+  '13:00': '1 PM', '14:00': '2 PM', '15:00': '3 PM', '16:00': '4 PM',
+  '17:00': '5 PM', '18:00': '6 PM', '19:00': '7 PM', '20:00': '8 PM',
+}
+
+const STATUS_META: Record<string, { label: string; cls: string; icon: typeof Hourglass }> = {
+  pending:   { label: 'Pending',   cls: 'bg-yellow-50 text-yellow-700 border-yellow-200',  icon: Hourglass },
+  accepted:  { label: 'Confirmed', cls: 'bg-blue-50 text-blue-700 border-blue-200',         icon: CheckCircle },
+  active:    { label: 'Active',    cls: 'bg-success-light text-success-dark border-success/30', icon: CheckCircle },
+  completed: { label: 'Completed', cls: 'bg-gray-100 text-gray-600 border-gray-200',        icon: CheckCircle },
+  cancelled: { label: 'Cancelled', cls: 'bg-danger-light text-danger-dark border-danger/20', icon: Prohibit },
+  rejected:  { label: 'Rejected',  cls: 'bg-danger-light text-danger-dark border-danger/20', icon: XCircle },
+}
+
+export default function ResidentBookingsPage() {
+  const { resident }                  = useResidentStore()
+  const [bookings, setBookings]       = useState<ResidentBookingRow[]>([])
+  const [isLoading, setIsLoading]     = useState(true)
+  const [error, setError]             = useState<string | null>(null)
+  const [tab, setTab]                 = useState<Tab>('pending')
+  const [pendingCancel, setPendingCancel] = useState<ResidentBookingRow | null>(null)
+  const [cancelling, setCancelling]   = useState(false)
+
+  async function load() {
+    if (!resident?.id) return
+    setIsLoading(true)
+    try {
+      const rows = await fetchResidentBookings(resident.id)
+      setBookings(rows)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [resident?.id])
+
+  async function confirmCancel() {
+    if (!pendingCancel) return
+    setCancelling(true)
+    try {
+      await cancelResidentBooking(pendingCancel.id)
+      setBookings((prev) =>
+        prev.map((b) => b.id === pendingCancel.id ? { ...b, status: 'cancelled' } : b)
+      )
+      setPendingCancel(null)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const filtered = bookings.filter((b) => {
+    if (tab === 'pending') return b.status === 'pending'
+    if (tab === 'active')  return b.status === 'accepted' || b.status === 'active'
+    return ['completed', 'cancelled', 'rejected'].includes(b.status)
+  })
+
+  const tabCounts = {
+    pending: bookings.filter((b) => b.status === 'pending').length,
+    active:  bookings.filter((b) => b.status === 'accepted' || b.status === 'active').length,
+    history: bookings.filter((b) => ['completed', 'cancelled', 'rejected'].includes(b.status)).length,
+  }
+
+  return (
+    <div className="px-4 pt-4">
+      <div className="mb-5">
+        <h1 className="font-heading text-2xl font-bold text-gray-800">My Bookings</h1>
+        <p className="font-body text-sm text-gray-400 mt-0.5">Track all your service requests</p>
+      </div>
+
+      {error && (
+        <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-4 text-sm font-body text-danger-dark">
+          {error}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+        {(['pending', 'active', 'history'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={[
+              'px-4 py-2 rounded-full text-sm font-body font-semibold shrink-0 transition-colors capitalize flex items-center gap-1.5',
+              tab === t ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+            ].join(' ')}
+          >
+            {t}
+            {tabCounts[t] > 0 && (
+              <span className={[
+                'text-xs rounded-full px-1.5 py-0.5 font-bold min-w-[20px] text-center',
+                tab === t ? 'bg-white/20' : 'bg-gray-200 text-gray-600',
+              ].join(' ')}>
+                {tabCounts[t]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={CalendarCheck}
+          title={
+            tab === 'pending' ? 'No pending requests'
+            : tab === 'active' ? 'No active bookings'
+            : 'No booking history yet'
+          }
+          description={
+            tab === 'pending'
+              ? 'Booking requests waiting for worker response will show up here.'
+              : tab === 'active'
+              ? 'Confirmed and ongoing bookings will appear here.'
+              : 'Completed and cancelled bookings will appear here.'
+          }
+        />
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((b) => {
+            const meta = STATUS_META[b.status] ?? STATUS_META.pending
+            const StatusIcon = meta.icon
+
+            return (
+              <div key={b.id} className="card space-y-3">
+                {/* Worker + status */}
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    {b.workerPhoto ? (
+                      <img src={b.workerPhoto} alt={b.workerName} className="w-full h-full object-cover" />
+                    ) : (
+                      <UserIcon size={20} weight="duotone" className="text-primary" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-body font-semibold text-gray-800 truncate">
+                      {b.workerName || 'Worker'}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {b.serviceTypeIds.map((s) => (
+                        <span key={s} className={`text-xs font-body font-medium px-2 py-0.5 rounded-full ${SERVICE_PILL_COLORS[s] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {SERVICE_LABELS[s] ?? s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-body font-semibold border ${meta.cls}`}>
+                    <StatusIcon size={11} weight="fill" />
+                    {meta.label}
+                  </span>
+                </div>
+
+                {/* Schedule */}
+                <div className="flex items-center gap-4 text-xs font-body text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Clock size={12} weight="duotone" className="text-gray-400" />
+                    {DISPLAY_TIMES[b.arrivalTime] ?? b.arrivalTime}
+                  </span>
+                  <div className="flex gap-1">
+                    {(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const).map((d) => {
+                      const active = b.daysOfWeek.includes(d)
+                      return (
+                        <span
+                          key={d}
+                          className={[
+                            'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold',
+                            active ? 'bg-primary text-white' : 'bg-gray-100 text-gray-300',
+                          ].join(' ')}
+                        >
+                          {DAY_SHORT[d]}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Price + cancel */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-1">
+                    <CurrencyInr size={14} weight="bold" className="text-primary" />
+                    <span className="font-heading text-base font-bold text-primary">
+                      {b.totalPrice}
+                    </span>
+                    <span className="font-body text-xs text-gray-400 ml-0.5">
+                      / {b.pricingMode === 'monthly' ? 'mo' : 'visit'}
+                    </span>
+                  </div>
+                  {b.status === 'pending' && (
+                    <button
+                      onClick={() => setPendingCancel(b)}
+                      className="text-xs font-body font-semibold text-danger hover:text-danger-dark transition-colors flex items-center gap-1"
+                    >
+                      <XCircle size={13} weight="fill" />
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {pendingCancel && (
+        <ConfirmDialog
+          title="Cancel booking?"
+          message={`Cancel your booking request with ${pendingCancel.workerName || 'this worker'}? This action cannot be undone.`}
+          confirmLabel="Yes, Cancel"
+          cancelLabel="Keep Booking"
+          variant="danger"
+          isLoading={cancelling}
+          onConfirm={confirmCancel}
+          onCancel={() => setPendingCancel(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+void SpinnerGap

@@ -8,6 +8,7 @@ import { lazy, Suspense } from 'react'
 const LoginPage = lazy(() => import('@/modules/auth/LoginPage'))
 const SuperAdminLayout = lazy(() => import('@/modules/super-admin/SuperAdminLayout'))
 const RwaAdminLayout = lazy(() => import('@/modules/rwa-admin/RwaAdminLayout'))
+const WorkerAdminLayout = lazy(() => import('@/modules/worker-admin/WorkerAdminLayout'))
 const ServiceProviderLayout = lazy(() => import('@/modules/service-provider/ServiceProviderLayout'))
 const ResidentLayout = lazy(() => import('@/modules/resident/ResidentLayout'))
 
@@ -48,10 +49,11 @@ function PublicOnlyRoute() {
 
   if (isAuthenticated && role) {
     const redirects: Record<Role, string> = {
-      super_admin: '/super-admin',
-      rwa_admin: '/rwa-admin',
+      super_admin:      '/super-admin',
+      rwa_admin:        '/rwa-admin',
+      worker_admin:     '/worker-admin',
       service_provider: '/provider',
-      resident: '/resident',
+      resident:         '/resident',
     }
     return <Navigate to={redirects[role]} replace />
   }
@@ -90,6 +92,12 @@ export const router = createBrowserRouter([
     element: <RequireRole allowed={['rwa_admin']} />,
     children: [
       { path: 'rwa-admin/*', element: <RwaAdminLayout /> },
+    ],
+  },
+  {
+    element: <RequireRole allowed={['worker_admin']} />,
+    children: [
+      { path: 'worker-admin/*', element: <WorkerAdminLayout /> },
     ],
   },
   {

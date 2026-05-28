@@ -33,7 +33,7 @@ export default function BookingRequestCard({ booking, onAccept, onReject }: Book
   const serviceLabels = booking.serviceTypeIds
     .map((id) => {
       const def = SERVICE_TYPE_BY_ID[id as keyof typeof SERVICE_TYPE_BY_ID]
-      return def ? `${def.emoji} ${t(def.labelKey)}` : id
+      return def ? t(def.labelKey) : id
     })
     .join(' + ')
 

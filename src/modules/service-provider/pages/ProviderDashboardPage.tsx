@@ -102,7 +102,7 @@ export default function ProviderDashboardPage() {
               if (!def) return null
               return (
                 <div key={s.id} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3">
-                  <span className="text-xl shrink-0">{def.emoji}</span>
+                  {(() => { const I = def.icon; return <I size={18} weight="duotone" className="text-primary shrink-0" /> })()}
                   <span className="font-heading font-semibold text-gray-800 text-sm flex-1 truncate">
                     {t(def.labelKey)}
                   </span>

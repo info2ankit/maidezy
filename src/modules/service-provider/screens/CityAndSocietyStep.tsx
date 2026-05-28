@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Check, SpinnerGap } from '@phosphor-icons/react'
 import { fetchSocieties } from '@/shared/services/societyService'
 import { useWorkerProfileStore } from '@/shared/stores/workerProfileStore'
 import OnboardingWizardLayout from '../components/OnboardingWizardLayout'
@@ -11,10 +12,14 @@ export default function CityAndSocietyStep() {
   const { t } = useTranslation('worker')
 
   const workerName   = useWorkerProfileStore((s) => s.setupForm.workerName)
+  const gender       = useWorkerProfileStore((s) => s.setupForm.gender)
+  const address      = useWorkerProfileStore((s) => s.setupForm.address)
   const cityName     = useWorkerProfileStore((s) => s.setupForm.cityName)
   const societyIds   = useWorkerProfileStore((s) => s.setupForm.societyIds ?? [])
   const errors       = useWorkerProfileStore((s) => s.setupForm.errors)
   const setName      = useWorkerProfileStore((s) => s.setName)
+  const setGender    = useWorkerProfileStore((s) => s.setGender)
+  const setAddress   = useWorkerProfileStore((s) => s.setAddress)
   const setCity      = useWorkerProfileStore((s) => s.setCity)
   const toggleSociety = useWorkerProfileStore((s) => s.toggleSociety)
   const nextStep     = useWorkerProfileStore((s) => s.nextStep)
@@ -62,11 +67,11 @@ export default function CityAndSocietyStep() {
       primaryAction={{
         label:    t('profile.next'),
         onClick:  handleNext,
-        disabled: !workerName.trim() || !cityName || societyIds.length === 0,
+        disabled: !workerName.trim() || !gender || !address.trim() || !cityName || societyIds.length === 0,
       }}
     >
-      {/* Name input — always visible */}
-      <div className="mb-6">
+      {/* Name */}
+      <div className="mb-5">
         <p className="font-body text-xs text-gray-400 mb-2">{t('profile.name_title')}</p>
         <input
           type="text"
@@ -80,9 +85,49 @@ export default function CityAndSocietyStep() {
         )}
       </div>
 
+      {/* Gender */}
+      <div className="mb-5">
+        <p className="font-body text-xs text-gray-400 mb-2">{t('profile.gender_title')}</p>
+        <div className="flex gap-2">
+          {(['male', 'female', 'other'] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setGender(g)}
+              className={[
+                'flex-1 py-2.5 rounded-xl text-sm font-body font-semibold border-2 transition-colors',
+                gender === g
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50',
+              ].join(' ')}
+            >
+              {t(`profile.gender_${g}`)}
+            </button>
+          ))}
+        </div>
+        {errors.gender && (
+          <p className="font-body text-sm text-danger mt-1.5">{t(errors.gender)}</p>
+        )}
+      </div>
+
+      {/* Address */}
+      <div className="mb-6">
+        <p className="font-body text-xs text-gray-400 mb-2">{t('profile.address_title')}</p>
+        <textarea
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder={t('profile.address_placeholder')}
+          rows={2}
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-body text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary resize-none"
+        />
+        {errors.address && (
+          <p className="font-body text-sm text-danger mt-1">{t(errors.address)}</p>
+        )}
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-10">
-          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <SpinnerGap size={24} weight="bold" className="text-accent animate-spin" />
         </div>
       ) : (
         <>
@@ -166,9 +211,7 @@ export default function CityAndSocietyStep() {
                           </div>
                           {isSelected && (
                             <span className="w-5 h-5 rounded-full bg-accent flex items-center justify-center flex-shrink-0 ml-2">
-                              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                                <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
+                              <Check size={11} weight="bold" className="text-white" />
                             </span>
                           )}
                         </div>

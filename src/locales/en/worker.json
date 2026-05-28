@@ -30,6 +30,14 @@
     "remove_shift": "Remove shift",
     "name_title": "What's your name?",
     "name_placeholder": "Enter your full name",
+    "gender_title": "Gender",
+    "gender_male": "Male",
+    "gender_female": "Female",
+    "gender_other": "Other",
+    "gender_locked": "Cannot be changed",
+    "address_title": "Home address",
+    "address_placeholder": "House no., street, area...",
+    "personal_info_title": "Personal Info",
     "city_title": "Which city do you work in?",
     "city_subtitle": "City",
     "location_title": "City & Societies",
@@ -92,6 +100,8 @@
   },
   "errors": {
     "enter_name": "Please enter your name",
+    "select_gender": "Please select your gender",
+    "enter_address": "Please enter your address",
     "select_city": "Select your city",
     "select_society": "Select your society",
     "select_service": "Select at least one service",
@@ -169,7 +179,9 @@
     "crop_hint": "Pinch to zoom · drag to reframe",
     "crop_save": "Crop & Save",
     "photo_crop_note": "will be cropped to circle",
-    "review_note": "Your documents are under review. We'll notify you once your profile is verified."
+    "review_note": "Your documents are under review. We'll notify you once your profile is verified.",
+    "locked_title": "Documents Locked",
+    "locked_body": "Your KYC is verified. Aadhaar and photo cannot be changed. Contact admin if you need to update them."
   },
   "bookings": {
     "title": "My Bookings",

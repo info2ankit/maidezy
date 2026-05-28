@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertCircle, Briefcase, Home } from 'lucide-react'
+import { WarningCircle, Briefcase, House } from '@phosphor-icons/react'
 import { sendOtp, verifyOtp } from '@/shared/services/authService'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { APP_NAME, APP_TAGLINE, ROUTES } from '@/shared/utils/constants'
@@ -13,10 +13,11 @@ import OtpStep from './components/OtpStep'
 type SignupAs = 'resident' | 'service_provider'
 
 const roleRedirect: Record<Role, string> = {
-  super_admin: ROUTES.SUPER_ADMIN,
-  rwa_admin: ROUTES.RWA_ADMIN,
+  super_admin:      ROUTES.SUPER_ADMIN,
+  rwa_admin:        ROUTES.RWA_ADMIN,
+  worker_admin:     ROUTES.WORKER_ADMIN,
   service_provider: ROUTES.SERVICE_PROVIDER,
-  resident: ROUTES.RESIDENT,
+  resident:         ROUTES.RESIDENT,
 }
 
 type Step = 'mobile' | 'otp'
@@ -111,7 +112,7 @@ export default function LoginPage() {
           {/* Error banner */}
           {error && (
             <div className="flex items-start gap-2 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5 mb-4">
-              <AlertCircle size={16} className="text-danger mt-0.5 shrink-0" />
+              <WarningCircle size={16} className="text-danger mt-0.5 shrink-0" />
               <p className="text-sm font-body text-danger-dark">{error}</p>
             </div>
           )}
@@ -131,7 +132,7 @@ export default function LoginPage() {
                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   )}
                 >
-                  <Home size={20} />
+                  <House size={20} />
                   <span className="text-sm font-semibold font-body">Resident</span>
                 </button>
                 <button
@@ -178,14 +179,6 @@ export default function LoginPage() {
           </button>
         )}
 
-        {/* Bypass mode notice */}
-        {import.meta.env.VITE_APP_ENV !== 'production' && (
-          <div className="mt-6 text-center">
-            <span className="inline-block bg-accent/10 text-accent text-xs font-semibold font-body px-3 py-1 rounded-full">
-              Dev mode — any 6-digit OTP works
-            </span>
-          </div>
-        )}
       </div>
     </div>
   )

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Camera, Image, SealCheck, SpinnerGap, CheckCircle,
-  Warning, IdentificationCard, WarningCircle,
+  Warning, IdentificationCard, WarningCircle, LockSimple,
 } from '@phosphor-icons/react'
 import { uploadKycFile, upsertKycDocument, fetchKycByUserId } from '@/shared/services/kycService'
 import { useAuthStore } from '@/shared/stores/authStore'
@@ -45,10 +45,11 @@ const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(point
 
 interface AadhaarSlotProps {
   existingUrl: string | null
+  isLocked:    boolean
   onUploaded:  (url: string, oldUrl: string | null) => void
 }
 
-function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
+function AadhaarSlot({ existingUrl, isLocked, onUploaded }: AadhaarSlotProps) {
   const { t }  = useTranslation('worker')
   const userId = useAuthStore((s) => s.user?.id)
 
@@ -126,31 +127,37 @@ function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
         </div>
       )}
 
-      <p className="font-body text-[11px] text-gray-400 mx-4 mb-2">
-        {t('kyc.allowed_types_aadhaar')} · {t('kyc.max_size')}
-      </p>
+      {isLocked ? (
+        <LockedBanner />
+      ) : (
+        <>
+          <p className="font-body text-[11px] text-gray-400 mx-4 mb-2">
+            {t('kyc.allowed_types_aadhaar')} · {t('kyc.max_size')}
+          </p>
 
-      <input ref={cameraRef}  type="file" accept={ALLOWED.aadhaar.acceptCamera} capture="environment" className="hidden" onChange={onChange} />
-      <input ref={galleryRef} type="file" accept={ALLOWED.aadhaar.accept} className="hidden" onChange={onChange} />
+          <input ref={cameraRef}  type="file" accept={ALLOWED.aadhaar.acceptCamera} capture="environment" className="hidden" onChange={onChange} />
+          <input ref={galleryRef} type="file" accept={ALLOWED.aadhaar.accept} className="hidden" onChange={onChange} />
 
-      <div className={`grid gap-3 px-4 pb-4 ${isTouchDevice ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        {isTouchDevice && (
-          <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
-            className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
-            {uploading ? <SpinnerGap size={20} weight="bold" className="animate-spin" /> : <Camera size={20} weight="duotone" />}
-            <span className="font-body text-xs font-semibold">
-              {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
-            </span>
-          </button>
-        )}
-        <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
-          {uploading && !isTouchDevice ? <SpinnerGap size={18} weight="bold" className="animate-spin" /> : <Image size={18} weight="duotone" />}
-          <span className="font-body text-sm font-semibold">
-            {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
-          </span>
-        </button>
-      </div>
+          <div className={`grid gap-3 px-4 pb-4 ${isTouchDevice ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {isTouchDevice && (
+              <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
+                className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+                {uploading ? <SpinnerGap size={20} weight="bold" className="animate-spin" /> : <Camera size={20} weight="duotone" />}
+                <span className="font-body text-xs font-semibold">
+                  {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
+                </span>
+              </button>
+            )}
+            <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
+              {uploading && !isTouchDevice ? <SpinnerGap size={18} weight="bold" className="animate-spin" /> : <Image size={18} weight="duotone" />}
+              <span className="font-body text-sm font-semibold">
+                {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
+              </span>
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -159,10 +166,11 @@ function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
 
 interface PhotoSlotProps {
   existingUrl: string | null
+  isLocked:    boolean
   onUploaded:  (url: string, oldUrl: string | null) => void
 }
 
-function PhotoSlot({ existingUrl, onUploaded }: PhotoSlotProps) {
+function PhotoSlot({ existingUrl, isLocked, onUploaded }: PhotoSlotProps) {
   const { t }  = useTranslation('worker')
   const userId = useAuthStore((s) => s.user?.id)
 
@@ -248,33 +256,56 @@ function PhotoSlot({ existingUrl, onUploaded }: PhotoSlotProps) {
           </div>
         )}
 
-        <p className="font-body text-[11px] text-gray-400 mx-4 mb-2">
-          {t('kyc.allowed_types_photo')} · {t('kyc.max_size')} · {t('kyc.photo_crop_note')}
-        </p>
+        {isLocked ? (
+          <LockedBanner />
+        ) : (
+          <>
+            <p className="font-body text-[11px] text-gray-400 mx-4 mb-2">
+              {t('kyc.allowed_types_photo')} · {t('kyc.max_size')} · {t('kyc.photo_crop_note')}
+            </p>
 
-        <input ref={cameraRef}  type="file" accept={ALLOWED.photo.acceptCamera} capture="user" className="hidden" onChange={onChange} />
-        <input ref={galleryRef} type="file" accept={ALLOWED.photo.accept} className="hidden" onChange={onChange} />
+            <input ref={cameraRef}  type="file" accept={ALLOWED.photo.acceptCamera} capture="user" className="hidden" onChange={onChange} />
+            <input ref={galleryRef} type="file" accept={ALLOWED.photo.accept} className="hidden" onChange={onChange} />
 
-        <div className={`grid gap-3 px-4 pb-4 ${isTouchDevice ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {isTouchDevice && (
-            <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
-              className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
-              {uploading ? <SpinnerGap size={20} weight="bold" className="animate-spin" /> : <Camera size={20} weight="duotone" />}
-              <span className="font-body text-xs font-semibold">
-                {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
-              </span>
-            </button>
-          )}
-          <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
-            className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
-            {uploading && !isTouchDevice ? <SpinnerGap size={18} weight="bold" className="animate-spin" /> : <Image size={18} weight="duotone" />}
-            <span className="font-body text-sm font-semibold">
-              {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
-            </span>
-          </button>
-        </div>
+            <div className={`grid gap-3 px-4 pb-4 ${isTouchDevice ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {isTouchDevice && (
+                <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+                  {uploading ? <SpinnerGap size={20} weight="bold" className="animate-spin" /> : <Camera size={20} weight="duotone" />}
+                  <span className="font-body text-xs font-semibold">
+                    {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
+                  </span>
+                </button>
+              )}
+              <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
+                {uploading && !isTouchDevice ? <SpinnerGap size={18} weight="bold" className="animate-spin" /> : <Image size={18} weight="duotone" />}
+                <span className="font-body text-sm font-semibold">
+                  {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
+                </span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </>
+  )
+}
+
+// ─── Locked banner ────────────────────────────────────────────────────────────
+
+function LockedBanner() {
+  const { t } = useTranslation('worker')
+  return (
+    <div className="mx-4 mb-4 flex items-start gap-3 bg-success/5 border border-success/20 rounded-2xl px-4 py-3">
+      <div className="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+        <LockSimple size={16} weight="fill" className="text-success" />
+      </div>
+      <div>
+        <p className="font-body text-sm font-semibold text-gray-800">{t('kyc.locked_title')}</p>
+        <p className="font-body text-xs text-gray-500 mt-0.5 leading-relaxed">{t('kyc.locked_body')}</p>
+      </div>
+    </div>
   )
 }
 
@@ -312,6 +343,8 @@ export default function KycPage() {
 
   if (isLoading) return <LoadingSpinner />
 
+  const isLocked = provider?.kyc_status === 'approved'
+
   return (
     <div className="max-w-md mx-auto">
       <div className="mb-6">
@@ -348,10 +381,12 @@ export default function KycPage() {
       <div className="space-y-4">
         <AadhaarSlot
           existingUrl={doc?.aadhaar_url ?? null}
+          isLocked={isLocked}
           onUploaded={(url) => handleUploaded('aadhaar', url)}
         />
         <PhotoSlot
           existingUrl={doc?.photo_url ?? null}
+          isLocked={isLocked}
           onUploaded={(url) => handleUploaded('photo',   url)}
         />
       </div>

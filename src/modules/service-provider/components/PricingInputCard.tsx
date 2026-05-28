@@ -20,6 +20,7 @@ export default function PricingInputCard({
 }: PricingInputCardProps) {
   const { t } = useTranslation('worker')
   const def = SERVICE_TYPE_BY_ID[serviceTypeId]
+  const ServiceIcon = def.icon
 
   function handleChange(mode: 'monthly' | 'perVisit', raw: string) {
     const digits = raw.replace(/\D/g, '')
@@ -32,8 +33,8 @@ export default function PricingInputCard({
       hasError ? 'border-danger/50' : 'border-gray-100',
     )}>
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-2xl" aria-hidden="true">{def.emoji}</span>
+      <div className="flex items-center gap-2.5 mb-4">
+        <ServiceIcon size={24} weight="duotone" className="text-primary shrink-0" />
         <p className="font-heading font-bold text-gray-800 text-base">{t(def.labelKey)}</p>
       </div>
 
