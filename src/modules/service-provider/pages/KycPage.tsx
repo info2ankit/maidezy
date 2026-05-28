@@ -1,29 +1,55 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Camera, ImageIcon, FileCheck, Loader2, CheckCircle2, AlertCircle, FileText } from 'lucide-react'
+import {
+  Camera, ImageIcon, FileCheck, Loader2, CheckCircle2,
+  AlertCircle, FileText, FileWarning,
+} from 'lucide-react'
 import { uploadKycFile, upsertKycDocument, fetchKycByUserId } from '@/shared/services/kycService'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { useProvider } from '../components/ProviderContext'
 import KycBadge from '@/shared/components/KycBadge'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
+import ImageCropModal from '@/shared/components/ImageCropModal'
 import type { KycDocument } from '@/shared/types'
 
 type DocKind = 'aadhaar' | 'photo'
 
-interface UploadSlotProps {
-  kind:        DocKind
-  label:       string
-  description: string
-  icon:        typeof FileText
-  captureMode: 'environment' | 'user'
-  existingUrl: string | null
-  onUploaded:  (url: string) => void
+// ─── Validation config ────────────────────────────────────────────────────────
+
+const MAX_SIZE_BYTES = 5 * 1024 * 1024
+
+const ALLOWED: Record<DocKind, { mimes: string[]; accept: string; acceptCamera: string }> = {
+  aadhaar: {
+    mimes:        ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'],
+    accept:       'image/jpeg,image/jpg,image/png,application/pdf',
+    acceptCamera: 'image/*',
+  },
+  photo: {
+    mimes:        ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+    accept:       'image/jpeg,image/jpg,image/png,image/webp',
+    acceptCamera: 'image/*',
+  },
+}
+
+function formatBytes(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function isPdfUrl(url: string): boolean {
+  return url.toLowerCase().includes('.pdf')
 }
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
-function UploadSlot({ kind, label, description, icon: Icon, captureMode, existingUrl, onUploaded }: UploadSlotProps) {
-  const { t } = useTranslation('worker')
+// ─── Aadhaar upload slot (document — no crop) ─────────────────────────────────
+
+interface AadhaarSlotProps {
+  existingUrl: string | null
+  onUploaded:  (url: string, oldUrl: string | null) => void
+}
+
+function AadhaarSlot({ existingUrl, onUploaded }: AadhaarSlotProps) {
+  const { t }  = useTranslation('worker')
   const userId = useAuthStore((s) => s.user?.id)
 
   const [uploading, setUploading] = useState(false)
@@ -34,13 +60,17 @@ function UploadSlot({ kind, label, description, icon: Icon, captureMode, existin
 
   async function handleFile(file: File) {
     if (!userId) return
-    if (file.size > 5 * 1024 * 1024) { setError(t('kyc.file_size_error')); return }
-
+    if (!ALLOWED.aadhaar.mimes.includes(file.type.toLowerCase())) {
+      setError(t('kyc.file_type_error_aadhaar')); return
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      setError(t('kyc.file_size_error_detail', { size: formatBytes(file.size), limit: '5 MB' })); return
+    }
     setError(null)
     setUploading(true)
     try {
-      const url = await uploadKycFile(userId, kind, file)
-      onUploaded(url)
+      const url = await uploadKycFile(userId, 'aadhaar', file, existingUrl)
+      onUploaded(url, existingUrl)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -48,16 +78,14 @@ function UploadSlot({ kind, label, description, icon: Icon, captureMode, existin
     }
   }
 
-  function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (f) handleFile(f)
-    // Reset so the same file can be re-selected after an error
-    e.target.value = ''
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''
   }
+
+  const isPdf = existingUrl ? isPdfUrl(existingUrl) : false
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Header */}
       <div className="flex items-start gap-3 px-4 pt-4 pb-3">
         <div className={[
           'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
@@ -65,88 +93,61 @@ function UploadSlot({ kind, label, description, icon: Icon, captureMode, existin
         ].join(' ')}>
           {existingUrl
             ? <CheckCircle2 size={20} className="text-success" />
-            : <Icon size={18} className="text-primary" />}
+            : <FileText size={18} className="text-primary" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-body font-semibold text-gray-800">{label}</p>
-          <p className="font-body text-xs text-gray-500 mt-0.5">{description}</p>
+          <p className="font-body font-semibold text-gray-800">{t('kyc.aadhaar')}</p>
+          <p className="font-body text-xs text-gray-500 mt-0.5">{t('kyc.aadhaar_desc')}</p>
         </div>
       </div>
 
-      {/* Preview */}
       {existingUrl && (
-        <a
-          href={existingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block mx-4 mb-3 rounded-xl overflow-hidden border border-gray-100"
-        >
-          <img src={existingUrl} alt={label} className="w-full h-36 object-cover" />
-        </a>
+        isPdf ? (
+          <a href={existingUrl} target="_blank" rel="noopener noreferrer"
+            className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:bg-gray-100 transition-colors">
+            <FileText size={28} className="text-primary shrink-0" />
+            <div className="min-w-0">
+              <p className="font-body text-sm font-semibold text-gray-800">{t('kyc.pdf_uploaded')}</p>
+              <p className="font-body text-xs text-accent underline">{t('kyc.view_pdf')}</p>
+            </div>
+          </a>
+        ) : (
+          <a href={existingUrl} target="_blank" rel="noopener noreferrer"
+            className="block mx-4 mb-3 rounded-xl overflow-hidden border border-gray-100">
+            <img src={existingUrl} alt={t('kyc.aadhaar')} className="w-full h-36 object-cover" />
+          </a>
+        )
       )}
 
-      {/* Error */}
       {error && (
-        <div className="flex items-start gap-2 text-xs text-danger font-body mx-4 mb-3">
-          <AlertCircle size={12} className="mt-0.5 shrink-0" />
+        <div className="flex items-start gap-2 text-xs text-danger font-body mx-4 mb-3 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5">
+          <FileWarning size={14} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Hidden inputs */}
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture={captureMode}
-        className="hidden"
-        onChange={onInputChange}
-      />
-      <input
-        ref={galleryRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={onInputChange}
-      />
+      <p className="font-body text-[11px] text-gray-400 mx-4 mb-2">
+        {t('kyc.allowed_types_aadhaar')} · {t('kyc.max_size')}
+      </p>
 
-      {/* Action buttons */}
+      <input ref={cameraRef}  type="file" accept={ALLOWED.aadhaar.acceptCamera} capture="environment" className="hidden" onChange={onChange} />
+      <input ref={galleryRef} type="file" accept={ALLOWED.aadhaar.accept} className="hidden" onChange={onChange} />
+
       <div className={`grid gap-3 px-4 pb-4 ${isTouchDevice ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        {/* Camera — only on touch devices (mobile/tablet) */}
         {isTouchDevice && (
-          <button
-            type="button"
-            onClick={() => cameraRef.current?.click()}
-            disabled={uploading}
-            className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
-          >
-            {uploading ? (
-              <Loader2 size={20} className="animate-spin" />
-            ) : (
-              <Camera size={20} />
-            )}
+          <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
+            className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+            {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
             <span className="font-body text-xs font-semibold">
               {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
             </span>
           </button>
         )}
-
-        {/* Gallery / file upload — always shown */}
-        <button
-          type="button"
-          onClick={() => galleryRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
-        >
-          {uploading && !isTouchDevice
-            ? <Loader2 size={18} className="animate-spin" />
-            : <ImageIcon size={18} />}
+        <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
+          {uploading && !isTouchDevice ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
           <span className="font-body text-sm font-semibold">
-            {uploading && !isTouchDevice
-              ? t('kyc.uploading')
-              : existingUrl
-                ? t('kyc.replace')
-                : t('kyc.upload')}
+            {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
           </span>
         </button>
       </div>
@@ -154,10 +155,136 @@ function UploadSlot({ kind, label, description, icon: Icon, captureMode, existin
   )
 }
 
+// ─── Profile photo slot (with crop modal) ─────────────────────────────────────
+
+interface PhotoSlotProps {
+  existingUrl: string | null
+  onUploaded:  (url: string, oldUrl: string | null) => void
+}
+
+function PhotoSlot({ existingUrl, onUploaded }: PhotoSlotProps) {
+  const { t }  = useTranslation('worker')
+  const userId = useAuthStore((s) => s.user?.id)
+
+  const [rawSrc, setRawSrc]       = useState<string | null>(null)   // image chosen, waiting for crop
+  const [uploading, setUploading] = useState(false)
+  const [error, setError]         = useState<string | null>(null)
+
+  const cameraRef  = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
+
+  function readFile(file: File) {
+    if (!ALLOWED.photo.mimes.includes(file.type.toLowerCase())) {
+      setError(t('kyc.file_type_error_photo')); return
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      setError(t('kyc.file_size_error_detail', { size: formatBytes(file.size), limit: '5 MB' })); return
+    }
+    setError(null)
+    const reader = new FileReader()
+    reader.onload = () => setRawSrc(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; if (f) readFile(f); e.target.value = ''
+  }
+
+  async function handleCropDone(blob: Blob) {
+    if (!userId) return
+    setRawSrc(null)
+    setUploading(true)
+    try {
+      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' })
+      const url  = await uploadKycFile(userId, 'photo', file, existingUrl)
+      onUploaded(url, existingUrl)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <>
+      {/* Crop modal — rendered at root so it covers the full screen */}
+      {rawSrc && (
+        <ImageCropModal
+          imageSrc={rawSrc}
+          onDone={handleCropDone}
+          onCancel={() => setRawSrc(null)}
+        />
+      )}
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-start gap-3 px-4 pt-4 pb-3">
+          <div className={[
+            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+            existingUrl ? 'bg-success/10' : 'bg-primary/10',
+          ].join(' ')}>
+            {existingUrl
+              ? <CheckCircle2 size={20} className="text-success" />
+              : <Camera size={18} className="text-primary" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-body font-semibold text-gray-800">{t('kyc.photo')}</p>
+            <p className="font-body text-xs text-gray-500 mt-0.5">{t('kyc.photo_desc')}</p>
+          </div>
+        </div>
+
+        {/* Preview — circular thumbnail */}
+        {existingUrl && (
+          <div className="flex justify-center mb-3">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-primary/20 shadow-sm">
+              <img src={existingUrl} alt={t('kyc.photo')} className="w-full h-full object-cover" />
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-start gap-2 text-xs text-danger font-body mx-4 mb-3 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5">
+            <FileWarning size={14} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <p className="font-body text-[11px] text-gray-400 mx-4 mb-2">
+          {t('kyc.allowed_types_photo')} · {t('kyc.max_size')} · {t('kyc.photo_crop_note')}
+        </p>
+
+        <input ref={cameraRef}  type="file" accept={ALLOWED.photo.acceptCamera} capture="user" className="hidden" onChange={onChange} />
+        <input ref={galleryRef} type="file" accept={ALLOWED.photo.accept} className="hidden" onChange={onChange} />
+
+        <div className={`grid gap-3 px-4 pb-4 ${isTouchDevice ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {isTouchDevice && (
+            <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading}
+              className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+              {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+              <span className="font-body text-xs font-semibold">
+                {uploading ? t('kyc.uploading') : t('kyc.take_photo')}
+              </span>
+            </button>
+          )}
+          <button type="button" onClick={() => galleryRef.current?.click()} disabled={uploading}
+            className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50">
+            {uploading && !isTouchDevice ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+            <span className="font-body text-sm font-semibold">
+              {uploading && !isTouchDevice ? t('kyc.uploading') : existingUrl ? t('kyc.replace') : t('kyc.upload')}
+            </span>
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function KycPage() {
   const { t } = useTranslation('worker')
-  const user = useAuthStore((s) => s.user)
+  const user  = useAuthStore((s) => s.user)
   const { provider, refresh } = useProvider()
+
   const [doc, setDoc]             = useState<KycDocument | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError]         = useState<string | null>(null)
@@ -176,7 +303,7 @@ export default function KycPage() {
     const photoUrl   = kind === 'photo'   ? url : doc?.photo_url   ?? null
     try {
       const updated = await upsertKycDocument(user.id, aadhaarUrl, photoUrl)
-      setDoc(updated)
+      setDoc(updated)   // updates preview immediately with new URL
       await refresh()
     } catch (e) {
       setError((e as Error).message)
@@ -201,9 +328,10 @@ export default function KycPage() {
           <div>
             <p className="font-body font-semibold text-gray-800">{t('kyc.status_title')}</p>
             <p className="font-body text-xs text-gray-500 mt-0.5">
-              {provider?.kyc_status === 'approved' && t('kyc.status_approved')}
-              {provider?.kyc_status === 'pending'  && t('kyc.status_pending')}
-              {provider?.kyc_status === 'rejected' && t('kyc.status_rejected')}
+              {provider?.kyc_status === 'approved'  && t('kyc.status_approved')}
+              {provider?.kyc_status === 'submitted' && t('kyc.status_submitted')}
+              {provider?.kyc_status === 'pending'   && t('kyc.status_pending')}
+              {provider?.kyc_status === 'rejected'  && t('kyc.status_rejected')}
             </p>
           </div>
         </div>
@@ -211,29 +339,20 @@ export default function KycPage() {
       </div>
 
       {error && (
-        <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-4 text-sm font-body text-danger-dark">
+        <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-4 text-sm font-body text-danger-dark flex items-start gap-2">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
           {error}
         </div>
       )}
 
       <div className="space-y-4">
-        <UploadSlot
-          kind="aadhaar"
-          label={t('kyc.aadhaar')}
-          description={t('kyc.aadhaar_desc')}
-          icon={FileText}
-          captureMode="environment"
+        <AadhaarSlot
           existingUrl={doc?.aadhaar_url ?? null}
           onUploaded={(url) => handleUploaded('aadhaar', url)}
         />
-        <UploadSlot
-          kind="photo"
-          label={t('kyc.photo')}
-          description={t('kyc.photo_desc')}
-          icon={Camera}
-          captureMode="user"
+        <PhotoSlot
           existingUrl={doc?.photo_url ?? null}
-          onUploaded={(url) => handleUploaded('photo', url)}
+          onUploaded={(url) => handleUploaded('photo',   url)}
         />
       </div>
 

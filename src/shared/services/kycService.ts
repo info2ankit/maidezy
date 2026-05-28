@@ -3,12 +3,28 @@ import type { KycDocument } from '@/shared/types'
 
 const BUCKET = 'kyc-docs'
 
+function extractStoragePath(url: string): string | null {
+  const marker = `/object/public/${BUCKET}/`
+  const idx = url.indexOf(marker)
+  return idx === -1 ? null : url.slice(idx + marker.length).split('?')[0]
+}
+
 export async function uploadKycFile(
   userId: string,
   kind: 'aadhaar' | 'photo',
-  file: File
+  file: File,
+  oldUrl?: string | null,
 ): Promise<string> {
-  const ext = file.name.split('.').pop() ?? 'jpg'
+  // Delete the previous file first so storage stays clean
+  if (oldUrl) {
+    const oldPath = extractStoragePath(oldUrl)
+    if (oldPath) {
+      await supabase.storage.from(BUCKET).remove([oldPath])
+      // Ignore deletion errors — file may already be gone
+    }
+  }
+
+  const ext  = file.name.split('.').pop() ?? 'jpg'
   const path = `${userId}/${kind}-${Date.now()}.${ext}`
 
   const { error } = await supabase.storage

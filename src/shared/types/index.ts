@@ -1,6 +1,12 @@
 export type Role = 'super_admin' | 'rwa_admin' | 'service_provider' | 'resident'
 
-export type KycStatus = 'pending' | 'approved' | 'rejected'
+/**
+ * pending   — no documents uploaded yet (red — worker hasn't started)
+ * submitted — documents uploaded, awaiting internal review (yellow)
+ * approved  — verified (green)
+ * rejected  — documents rejected, must re-upload (red)
+ */
+export type KycStatus = 'pending' | 'submitted' | 'approved' | 'rejected'
 
 export type ServiceType =
   | 'maid'              // Full package: jhadu + pocha + bartan

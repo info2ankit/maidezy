@@ -28,7 +28,7 @@ export async function fetchProviderByUserId(userId: string): Promise<ProviderWit
   if (error) throw new Error(error.message)
   if (!provider) return null
 
-  const [{ data: pricingRows }, { data: avail }] = await Promise.all([
+  const [{ data: pricingRows }, { data: avail }, { data: kycDoc }] = await Promise.all([
     supabase
       .from('worker_service_pricing')
       .select('*')
@@ -38,6 +38,12 @@ export async function fetchProviderByUserId(userId: string): Promise<ProviderWit
       .from('worker_availability')
       .select('shifts')
       .eq('worker_id', userId)
+      .maybeSingle(),
+    // Check whether the worker has uploaded any KYC documents yet
+    supabase
+      .from('kyc_documents')
+      .select('aadhaar_url, photo_url')
+      .eq('user_id', userId)
       .maybeSingle(),
   ])
 
@@ -52,8 +58,15 @@ export async function fetchProviderByUserId(userId: string): Promise<ProviderWit
     meals_count:    null,
   }))
 
+  // If the DB says 'pending' but the worker has uploaded docs, show 'submitted'
+  // so the UI can distinguish "hasn't started" (red) from "under review" (yellow).
+  const hasDoc = !!(kycDoc?.aadhaar_url || kycDoc?.photo_url)
+  const derivedStatus =
+    provider.kyc_status === 'pending' && hasDoc ? 'submitted' : provider.kyc_status
+
   return {
     ...(provider as ServiceProvider),
+    kyc_status: derivedStatus,
     services,
     availability_slots: (avail?.shifts ?? provider.availability_slots ?? []) as AvailabilitySlot[],
   }
