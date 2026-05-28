@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pencil, Check, X, Loader2 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useProvider } from '../components/ProviderContext'
 import { useAuthStore } from '@/shared/stores/authStore'
@@ -11,6 +10,7 @@ import { DISPLAY_TIMES, WORKING_DAYS } from '@/shared/constants/timeSlots'
 import { fetchSocieties } from '@/shared/services/societyService'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import KycBadge from '@/shared/components/KycBadge'
+import KycNudgeBanner from '../components/KycNudgeBanner'
 import type { Society } from '@/shared/types'
 import type { WorkingDayId } from '@/shared/constants/timeSlots'
 
@@ -159,17 +159,10 @@ export default function ProviderProfilePage() {
           </div>
         </div>
 
-        {/* KYC nudge */}
-        {provider.kyc_status === 'pending' && (
-          <Link
-            to="/provider/kyc"
-            className="flex items-center justify-between gap-3 px-5 py-3 bg-orange-50 border-t border-orange-100 hover:bg-orange-100 transition-colors"
-          >
-            <p className="font-body text-sm font-semibold text-accent">{t('dashboard.complete_kyc')}</p>
-            <span className="text-accent font-bold">→</span>
-          </Link>
-        )}
       </div>
+
+      {/* KYC nudge */}
+      <KycNudgeBanner status={provider.kyc_status} />
 
       {/* ── City & Societies ── */}
       <Section title={t('profile.location_title')} icon="📍">

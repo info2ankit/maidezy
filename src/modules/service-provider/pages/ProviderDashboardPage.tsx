@@ -8,6 +8,7 @@ import { useProvider } from '../components/ProviderContext'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import EmptyState from '@/shared/components/EmptyState'
 import KycBadge from '@/shared/components/KycBadge'
+import KycNudgeBanner from '../components/KycNudgeBanner'
 import { SERVICE_TYPE_BY_ID } from '@/shared/constants/serviceTypes'
 import { DISPLAY_TIMES } from '@/shared/constants/timeSlots'
 
@@ -82,15 +83,7 @@ export default function ProviderDashboardPage() {
       </div>
 
       {/* KYC nudge */}
-      {provider.kyc_status === 'pending' && (
-        <Link to="/provider/kyc" className="card mb-4 flex items-center justify-between gap-3 hover:shadow-card-hover transition-shadow">
-          <div>
-            <p className="font-body font-semibold text-gray-800">{t('dashboard.complete_kyc')}</p>
-            <p className="font-body text-xs text-gray-500 mt-0.5">{t('dashboard.kyc_desc')}</p>
-          </div>
-          <span className="text-accent font-bold text-lg">→</span>
-        </Link>
-      )}
+      <KycNudgeBanner status={provider.kyc_status} />
 
       {/* Services & rates */}
       <div className="card mb-4">
