@@ -4,6 +4,8 @@ import ProviderSidebar from './components/ProviderSidebar'
 import OnboardingWizard from './OnboardingWizard'
 import ProviderDashboardPage from './pages/ProviderDashboardPage'
 import ProviderProfilePage from './pages/ProviderProfilePage'
+import EditServicesPage from './pages/EditServicesPage'
+import EditTimingsPage from './pages/EditTimingsPage'
 import KycPage from './pages/KycPage'
 import BookingsPage from './pages/BookingsPage'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
@@ -45,8 +47,10 @@ function ProviderShell() {
           <Routes>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<ProviderDashboardPage />} />
-            <Route path="profile"   element={<ProviderProfilePage />} />
-            <Route path="kyc"       element={<KycPage />} />
+            <Route path="profile"        element={<ProviderProfilePage />} />
+            <Route path="edit-services"  element={<EditServicesPage />} />
+            <Route path="edit-timings"   element={<EditTimingsPage />} />
+            <Route path="kyc"            element={<KycPage />} />
             <Route path="bookings"  element={<BookingsPage />} />
             <Route path="*"         element={<Navigate to="dashboard" replace />} />
           </Routes>

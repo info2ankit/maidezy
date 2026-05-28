@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pencil, Check, X, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useProvider } from '../components/ProviderContext'
 import { useAuthStore } from '@/shared/stores/authStore'
@@ -191,7 +192,7 @@ export default function ProviderProfilePage() {
       </Section>
 
       {/* ── Services & Pricing ── */}
-      <Section title={t('profile.services_title')} icon="🛠️">
+      <Section title={t('profile.services_title')} icon="🛠️" editHref="/provider/edit-services">
         {provider.services.length === 0 ? (
           <Empty />
         ) : (
@@ -225,7 +226,7 @@ export default function ProviderProfilePage() {
       </Section>
 
       {/* ── Working hours ── */}
-      <Section title={t('profile.timing_title')} icon="⏰">
+      <Section title={t('profile.timing_title')} icon="⏰" editHref="/provider/edit-timings">
         {shifts.length === 0 ? (
           <Empty />
         ) : (
@@ -269,12 +270,26 @@ export default function ProviderProfilePage() {
   )
 }
 
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function Section({ title, icon, editHref, children }: {
+  title:     string
+  icon:      string
+  editHref?: string
+  children:  React.ReactNode
+}) {
+  const { t } = useTranslation('worker')
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2">
         <span className="text-base">{icon}</span>
-        <p className="font-heading font-semibold text-sm text-gray-700">{title}</p>
+        <p className="font-heading font-semibold text-sm text-gray-700 flex-1">{title}</p>
+        {editHref && (
+          <Link
+            to={editHref}
+            className="text-xs font-semibold text-accent font-body hover:underline"
+          >
+            {t('dashboard.edit')}
+          </Link>
+        )}
       </div>
       <div className="px-5 py-4">{children}</div>
     </div>
