@@ -43,8 +43,10 @@ export default {
         bg: '#F8FAFC',
       },
       fontFamily: {
-        heading: ['Sora', 'sans-serif'],
-        body: ['Nunito', 'sans-serif'],
+        // Devanagari font listed first so Hindi glyphs render correctly;
+        // Latin glyphs fall through to Sora/Nunito automatically.
+        heading: ['Sora', '"Noto Sans Devanagari"', 'sans-serif'],
+        body: ['Nunito', '"Noto Sans Devanagari"', 'sans-serif'],
       },
       screens: {
         xs: '375px',

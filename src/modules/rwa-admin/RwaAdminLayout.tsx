@@ -5,6 +5,7 @@ import ResidentsPage from './pages/ResidentsPage'
 import ServicesPage from './pages/ServicesPage'
 import ComplaintsPage from './pages/ComplaintsPage'
 import SettingsPage from './pages/SettingsPage'
+import LanguageToggle from '@/shared/components/LanguageToggle'
 
 export default function RwaAdminLayout() {
   return (
@@ -16,7 +17,12 @@ export default function RwaAdminLayout() {
           <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-white font-heading font-bold text-xs">M</span>
           </div>
-          <span className="font-heading font-bold text-primary text-base">RWA Admin</span>
+          <span className="font-heading font-bold text-primary text-base flex-1">RWA Admin</span>
+          <LanguageToggle />
+        </div>
+
+        <div className="hidden md:flex sticky top-0 z-40 bg-bg/80 backdrop-blur-sm px-8 py-3 justify-end">
+          <LanguageToggle />
         </div>
 
         <div className="px-4 py-5 md:px-8 md:py-6">

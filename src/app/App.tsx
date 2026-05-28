@@ -1,5 +1,6 @@
 import { RouterProvider } from 'react-router-dom'
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { router } from './router'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/shared/stores/authStore'
@@ -7,6 +8,13 @@ import type { User } from '@/shared/types'
 
 export default function App() {
   const { setUser, setLoading, logout } = useAuthStore()
+  const { i18n } = useTranslation()
+
+  // Keep <html lang> in sync with the current language for a11y + font fallbacks
+  useEffect(() => {
+    const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'hi').split('-')[0]
+    document.documentElement.lang = lang
+  }, [i18n.resolvedLanguage, i18n.language])
 
   useEffect(() => {
     // Restore session on mount

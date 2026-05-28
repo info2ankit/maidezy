@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase'
-import type { User } from '@/shared/types'
+import type { User, Role } from '@/shared/types'
+
+// Default role for brand-new users created via OTP.
+type SignupRole = Extract<Role, 'resident' | 'service_provider'>
 
 // ─── Bypass mode ──────────────────────────────────────────────────────────────
 // When VITE_APP_ENV=development:
@@ -26,7 +29,8 @@ export async function sendOtp(mobile: string): Promise<{ error?: string }> {
 
 export async function verifyOtp(
   mobile: string,
-  token: string
+  token: string,
+  signupRole: SignupRole = 'resident'
 ): Promise<{ user?: User; error?: string }> {
   if (isBypassMode) {
     if (!/^\d{6}$/.test(token)) {
@@ -42,7 +46,7 @@ export async function verifyOtp(
       return { error: anonError?.message ?? 'Anonymous sign-in failed. Enable Anonymous Sign Ins in Supabase Auth.' }
     }
 
-    const user = await resolveProfileByMobile(anonData.user.id, mobile)
+    const user = await resolveProfileByMobile(anonData.user.id, mobile, signupRole)
     return { user }
   }
 
@@ -57,7 +61,7 @@ export async function verifyOtp(
     return { error: error?.message ?? 'Verification failed' }
   }
 
-  const user = await resolveProfileByMobile(data.user.id, mobile)
+  const user = await resolveProfileByMobile(data.user.id, mobile, signupRole)
   return { user }
 }
 
@@ -69,7 +73,12 @@ export async function signOut(): Promise<void> {
 
 // Looks up user by mobile number first (stable across anonymous sessions),
 // then falls back to auth ID. Creates a new profile if neither exists.
-async function resolveProfileByMobile(authId: string, mobile: string): Promise<User> {
+// signupRole is only used for NEW user creation; existing users keep their role.
+async function resolveProfileByMobile(
+  authId: string,
+  mobile: string,
+  signupRole: SignupRole
+): Promise<User> {
   // 1. Check if a profile with this mobile already exists
   const { data: byMobile } = await supabase
     .from('users')
@@ -82,7 +91,7 @@ async function resolveProfileByMobile(authId: string, mobile: string): Promise<U
   // 2. No existing mobile record — create fresh profile linked to this auth ID
   const { data: created, error } = await supabase
     .from('users')
-    .insert({ id: authId, mobile, role: 'resident', is_active: true })
+    .insert({ id: authId, mobile, role: signupRole, is_active: true })
     .select()
     .single()
 

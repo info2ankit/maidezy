@@ -4,6 +4,7 @@ import DashboardPage from './pages/DashboardPage'
 import SocietiesPage from './pages/SocietiesPage'
 import AdminsPage from './pages/AdminsPage'
 import ReportsPage from './pages/ReportsPage'
+import LanguageToggle from '@/shared/components/LanguageToggle'
 
 export default function SuperAdminLayout() {
   return (
@@ -17,7 +18,13 @@ export default function SuperAdminLayout() {
           <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-white font-heading font-bold text-xs">M</span>
           </div>
-          <span className="font-heading font-bold text-primary text-base">Super Admin</span>
+          <span className="font-heading font-bold text-primary text-base flex-1">Super Admin</span>
+          <LanguageToggle />
+        </div>
+
+        {/* Top bar (desktop only) */}
+        <div className="hidden md:flex sticky top-0 z-40 bg-bg/80 backdrop-blur-sm px-8 py-3 justify-end">
+          <LanguageToggle />
         </div>
 
         <div className="px-4 py-5 md:px-8 md:py-6">

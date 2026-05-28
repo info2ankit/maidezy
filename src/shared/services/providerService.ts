@@ -1,29 +1,37 @@
 import { supabase } from '@/lib/supabase'
-import type { ServiceProvider, User, KycStatus, ServiceType } from '@/shared/types'
+import type { ProviderWithServices, User, KycStatus, ServiceType } from '@/shared/types'
 
-export type ProviderWithUser = ServiceProvider & { user: User }
+export type ProviderRow = ProviderWithServices & { user: User }
 
 export interface ProviderFilters {
   serviceType?: ServiceType
-  kycStatus?: KycStatus
+  kycStatus?:   KycStatus
 }
 
 export async function fetchProvidersBySociety(
   societyId: string,
   filters: ProviderFilters = {}
-): Promise<ProviderWithUser[]> {
+): Promise<ProviderRow[]> {
+  // `!inner` makes provider_services an INNER JOIN so we can filter on it.
+  // Without filter, use a LEFT JOIN to include providers with no services yet.
+  const joinHint = filters.serviceType ? 'provider_services!inner' : 'provider_services'
+
   let query = supabase
     .from('service_providers')
-    .select('*, user:users!service_providers_user_id_fkey(*)')
+    .select(`*, user:users!service_providers_user_id_fkey(*), services:${joinHint}(*)`)
     .eq('society_id', societyId)
 
-  if (filters.serviceType) query = query.eq('service_type', filters.serviceType)
-  if (filters.kycStatus)   query = query.eq('kyc_status', filters.kycStatus)
+  if (filters.serviceType) {
+    query = query.eq('services.service_type', filters.serviceType)
+  }
+  if (filters.kycStatus) {
+    query = query.eq('kyc_status', filters.kycStatus)
+  }
 
   const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
-  return (data ?? []) as ProviderWithUser[]
+  return (data ?? []) as ProviderRow[]
 }
 
 export async function updateProviderKyc(id: string, status: KycStatus): Promise<void> {

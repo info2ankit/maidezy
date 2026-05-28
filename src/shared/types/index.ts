@@ -2,7 +2,18 @@ export type Role = 'super_admin' | 'rwa_admin' | 'service_provider' | 'resident'
 
 export type KycStatus = 'pending' | 'approved' | 'rejected'
 
-export type ServiceType = 'maid' | 'cook' | 'driver' | 'car_cleaner' | 'home_cleaner' | 'laundry'
+export type ServiceType =
+  | 'maid'              // Full package: jhadu + pocha + bartan
+  | 'jhadu_pocha'
+  | 'bartan'
+  | 'cooking_1_meal'
+  | 'cooking_2_meals'
+  | 'car_cleaning'
+  | 'laundry'
+  | 'deep_cleaning'
+  | 'child_care'
+  | 'elder_care'
+  | 'driver'
 
 export type BookingStatus = 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled'
 
@@ -42,17 +53,51 @@ export interface RwaAdmin {
   kyc_status: KycStatus
 }
 
+export interface AvailabilitySlot {
+  start: string  // "HH:MM" 24-hour
+  end:   string  // "HH:MM" 24-hour
+}
+
+export interface ProviderService {
+  id: string
+  provider_id: string
+  service_type: ServiceType
+  per_visit_rate: number | null
+  monthly_rate: number | null
+
+  // ─── Wizard pricing dimensions (added in v0.4) ──────────────────────────────
+  // Nullable so legacy rows (one-rate-per-service) keep working.
+  // Wizard writes one row per (service, home_size) for regular services,
+  // or one row per (service='cooking', family_size, meals_count) for cooking.
+  home_size:    'small' | 'medium' | 'large' | null
+  family_size:  'small' | 'medium' | 'large' | null
+  meals_count:  1 | 2 | null
+}
+
 export interface ServiceProvider {
   id: string
   user_id: string
-  society_id: string
-  service_type: ServiceType
+  /** @deprecated kept for back-compat; new code uses society_ids */
+  society_id: string | null
+  /** Societies this worker serves. Wizard writes this; legacy code may still mirror society_id. */
+  society_ids: string[]
   kyc_status: KycStatus
   availability: boolean
-  timing_start: string | null
-  timing_end: string | null
-  rate: number | null
+  availability_slots: AvailabilitySlot[]
   rating: number
+
+  // ─── Worker onboarding wizard fields (added in v0.4) ────────────────────────
+  // All nullable so existing rows created before the wizard remain valid.
+  home_size_preference: ('small' | 'medium' | 'large')[] | null
+  cooking_max_family:   'small' | 'medium' | 'large' | null
+  cooking_max_meals:    1 | 2 | null
+  buffer_minutes:       15 | 30 | 45 | null
+  max_bookings_per_day: 2 | 3 | 4 | 5 | null
+}
+
+// Provider row joined with its services — what most UI consumes
+export type ProviderWithServices = ServiceProvider & {
+  services: ProviderService[]
 }
 
 export interface KycDocument {

@@ -1,0 +1,39 @@
+{
+  "app": {
+    "name": "MaidEzy",
+    "tagline": "Your Society. Simplified."
+  },
+  "actions": {
+    "next": "Next →",
+    "back": "← Back",
+    "skip": "Skip for now",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved ✓",
+    "cancel": "Cancel",
+    "confirm": "Yes, do it",
+    "retry": "Try again",
+    "close": "Close",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "logout": "Logout"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "loading": "Loading..."
+  },
+  "errors": {
+    "generic": "Something went wrong, please try again",
+    "network": "Network problem",
+    "required": "Required"
+  },
+  "lang": {
+    "switch_to_en": "English",
+    "switch_to_hi": "हिंदी"
+  }
+}

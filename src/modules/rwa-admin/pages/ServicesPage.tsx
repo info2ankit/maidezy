@@ -4,11 +4,11 @@ import {
   fetchProvidersBySociety,
   updateProviderKyc,
   toggleProviderAvailability,
-  type ProviderWithUser,
+  type ProviderRow,
   type ProviderFilters,
 } from '@/shared/services/providerService'
 import { useAuthStore } from '@/shared/stores/authStore'
-import { SERVICE_TYPE_LABELS } from '@/shared/utils/constants'
+import { SERVICE_TYPES, SERVICE_TYPE_BY_ID } from '@/shared/utils/constants'
 import { cn } from '@/shared/utils/cn'
 import type { KycStatus, ServiceType } from '@/shared/types'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
@@ -17,11 +17,8 @@ import KycBadge from '@/shared/components/KycBadge'
 import KycActions from '../components/KycActions'
 
 const SERVICE_FILTERS: { label: string; value: ServiceType | 'all' }[] = [
-  { label: 'All',     value: 'all' },
-  { label: 'Maid',    value: 'maid' },
-  { label: 'Cook',    value: 'cook' },
-  { label: 'Driver',  value: 'driver' },
-  { label: 'Cleaner', value: 'home_cleaner' },
+  { label: 'All', value: 'all' },
+  ...SERVICE_TYPES.map((s) => ({ label: s.label, value: s.id })),
 ]
 
 const KYC_FILTERS: { label: string; value: KycStatus | 'all' }[] = [
@@ -33,7 +30,7 @@ const KYC_FILTERS: { label: string; value: KycStatus | 'all' }[] = [
 
 export default function ServicesPage() {
   const societyId = useAuthStore((s) => s.user?.society_id)
-  const [providers, setProviders] = useState<ProviderWithUser[]>([])
+  const [providers, setProviders] = useState<ProviderRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -58,7 +55,7 @@ export default function ServicesPage() {
     setProviders((prev) => prev.map((p) => (p.id === id ? { ...p, kyc_status: status } : p)))
   }
 
-  async function handleToggle(p: ProviderWithUser) {
+  async function handleToggle(p: ProviderRow) {
     setTogglingId(p.id)
     try {
       await toggleProviderAvailability(p.id, p.availability)
@@ -138,7 +135,6 @@ export default function ServicesPage() {
                       <KycBadge status={p.kyc_status} />
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-400 font-body mt-0.5 flex-wrap">
-                      <span className="font-semibold text-primary">{SERVICE_TYPE_LABELS[p.service_type]}</span>
                       <span className="flex items-center gap-1"><Phone size={12} />{p.user.mobile}</span>
                       {p.rating > 0 && (
                         <span className="flex items-center gap-1"><Star size={12} className="fill-accent text-accent" />{p.rating.toFixed(1)}</span>
@@ -148,6 +144,32 @@ export default function ServicesPage() {
                 </div>
                 <KycActions currentStatus={p.kyc_status} onUpdate={(s) => handleKyc(p.id, s)} />
               </div>
+
+              {/* Services + rates */}
+              {p.services.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                  {p.services.map((s) => {
+                    const def = SERVICE_TYPE_BY_ID[s.service_type]
+                    const Icon = def.icon
+                    return (
+                      <div key={s.id} className="flex items-center gap-2 text-sm">
+                        <Icon size={13} className="text-accent shrink-0" />
+                        <span className="font-heading font-semibold text-gray-800 flex-1 truncate">
+                          {def.label}
+                        </span>
+                        <div className="flex gap-2 font-body text-gray-600 tabular-nums shrink-0">
+                          {s.monthly_rate !== null && (
+                            <span>₹{s.monthly_rate}<span className="text-gray-400 text-xs">/mo</span></span>
+                          )}
+                          {s.per_visit_rate !== null && (
+                            <span>₹{s.per_visit_rate}<span className="text-gray-400 text-xs">/visit</span></span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
               {/* Availability toggle row */}
               {p.kyc_status === 'approved' && (

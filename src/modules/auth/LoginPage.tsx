@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Briefcase, Home } from 'lucide-react'
 import { sendOtp, verifyOtp } from '@/shared/services/authService'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { APP_NAME, APP_TAGLINE, ROUTES } from '@/shared/utils/constants'
+import { cn } from '@/shared/utils/cn'
 import type { Role } from '@/shared/types'
+import LanguageToggle from '@/shared/components/LanguageToggle'
 import MobileStep from './components/MobileStep'
 import OtpStep from './components/OtpStep'
+
+type SignupAs = 'resident' | 'service_provider'
 
 const roleRedirect: Record<Role, string> = {
   super_admin: ROUTES.SUPER_ADMIN,
@@ -23,6 +27,7 @@ export default function LoginPage() {
 
   const [step, setStep] = useState<Step>('mobile')
   const [mobile, setMobile] = useState('')
+  const [signupAs, setSignupAs] = useState<SignupAs>('resident')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,7 +49,7 @@ export default function LoginPage() {
   async function handleVerifyOtp(token: string) {
     setIsLoading(true)
     setError(null)
-    const result = await verifyOtp(mobile, token)
+    const result = await verifyOtp(mobile, token, signupAs)
     setIsLoading(false)
 
     if (result.error || !result.user) {
@@ -62,7 +67,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4 py-8 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageToggle />
+      </div>
       <div className="w-full max-w-sm">
 
         {/* Brand header */}
@@ -105,6 +113,44 @@ export default function LoginPage() {
             <div className="flex items-start gap-2 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5 mb-4">
               <AlertCircle size={16} className="text-danger mt-0.5 shrink-0" />
               <p className="text-sm font-body text-danger-dark">{error}</p>
+            </div>
+          )}
+
+          {/* Role picker (mobile step only) */}
+          {step === 'mobile' && (
+            <div className="mb-5">
+              <label className="label">I am a</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSignupAs('resident')}
+                  className={cn(
+                    'flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-all duration-150',
+                    signupAs === 'resident'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  )}
+                >
+                  <Home size={20} />
+                  <span className="text-sm font-semibold font-body">Resident</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignupAs('service_provider')}
+                  className={cn(
+                    'flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-all duration-150',
+                    signupAs === 'service_provider'
+                      ? 'border-accent bg-accent/5 text-accent'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  )}
+                >
+                  <Briefcase size={20} />
+                  <span className="text-sm font-semibold font-body">Service Provider</span>
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 font-body mt-1.5">
+                Only matters for new accounts. Existing users keep their current role.
+              </p>
             </div>
           )}
 

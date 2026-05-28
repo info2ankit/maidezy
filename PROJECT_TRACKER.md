@@ -1,8 +1,8 @@
 # SocietyServe — Project Tracker
 
-> **Last Updated**: Session 2 — Module 2 RWA Admin Complete  
-> **Current Phase**: Module 3 — Service Provider  
-> **Next Task**: Service Provider onboarding + KYC upload
+> **Last Updated**: Session 2 — Module 3 Service Provider Complete  
+> **Current Phase**: Module 4 — Resident  
+> **Next Task**: Resident onboarding + browse services by category
 
 ---
 
@@ -147,12 +147,12 @@
 
 | Task                | Status | Notes                               |
 | ------------------- | ------ | ----------------------------------- |
-| Onboarding flow     | ⏳     | Society select, name, service type  |
-| Dashboard           | ⏳     | Today's bookings                    |
-| KYC upload          | ⏳     | Aadhaar + selfie → Supabase Storage |
-| Profile edit        | ⏳     | Timing, rate, services              |
-| Availability toggle | ⏳     | On/off for the day                  |
-| Booking history     | ⏳     |                                     |
+| Onboarding flow     | ✅     | Gated: shown when no provider row exists |
+| Dashboard           | ✅     | Today's bookings + availability toggle + KYC nudge |
+| KYC upload          | ✅     | Aadhaar + selfie → Supabase Storage bucket `kyc-docs` |
+| Profile edit        | ✅     | Name, service type, timing, rate    |
+| Availability toggle | ✅     | On dashboard header card             |
+| Booking history     | ✅     | Filter by All/Upcoming/Active/History |
 
 ---
 
