@@ -53,7 +53,7 @@ const STATUS_META: Record<string, { label: string; cls: string; icon: typeof Hou
 }
 
 export default function ResidentBookingsPage() {
-  const { resident }                  = useResidentStore()
+  const { resident, decPendingCount } = useResidentStore()
   const [bookings, setBookings]       = useState<ResidentBookingRow[]>([])
   const [isLoading, setIsLoading]     = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -85,6 +85,7 @@ export default function ResidentBookingsPage() {
       setBookings((prev) =>
         prev.map((b) => b.id === pendingCancel.id ? { ...b, status: 'cancelled' } : b)
       )
+      if (pendingCancel.status === 'pending') decPendingCount()
       setPendingCancel(null)
     } catch (e) {
       setError((e as Error).message)
@@ -251,7 +252,9 @@ export default function ResidentBookingsPage() {
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
           onCancelled={(id) => {
+            const wasPending = bookings.find((b) => b.id === id)?.status === 'pending'
             setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: 'cancelled' } : b))
+            if (wasPending) decPendingCount()
             setSelectedBooking(null)
           }}
           onCancelRequest={(b) => { setSelectedBooking(null); setPendingCancel(b) }}

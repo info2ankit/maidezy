@@ -6,8 +6,6 @@ import {
   MagnifyingGlass,
   X,
   Users,
-  ClockAfternoon,
-  CalendarDot,
   Star,
 } from "@phosphor-icons/react";
 import { DISPLAY_TIMES } from "@/shared/constants/timeSlots";
@@ -119,32 +117,6 @@ function getGreeting() {
   return "Good evening";
 }
 
-function WorkerAvatar({
-  name,
-  photoUrl,
-}: {
-  name: string;
-  photoUrl: string | null;
-}) {
-  if (photoUrl) {
-    return (
-      <img
-        src={photoUrl}
-        alt={name}
-        className="w-12 h-12 rounded-full object-cover shrink-0"
-      />
-    );
-  }
-  const initial = name[0]?.toUpperCase() ?? "?";
-  return (
-    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-      <span className="font-heading font-bold text-primary text-lg">
-        {initial}
-      </span>
-    </div>
-  );
-}
-
 export default function ResidentHomePage() {
   const { user } = useAuthStore();
   const { resident } = useResidentStore();
@@ -158,7 +130,9 @@ export default function ResidentHomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [detailWorker, setDetailWorker] = useState<ResidentWorker | null>(null);
-  const [bookingWorker, setBookingWorker] = useState<ResidentWorker | null>(null);
+  const [bookingWorker, setBookingWorker] = useState<ResidentWorker | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!resident) return;
@@ -388,43 +362,94 @@ export default function ResidentHomePage() {
               return (
                 <div
                   key={worker.userId}
-                  className="card flex items-center gap-3 cursor-pointer active:scale-[0.99] transition-transform"
+                  className="bg-white rounded-2xl shadow-card overflow-hidden cursor-pointer active:scale-[0.99] transition-all"
                   onClick={() => setDetailWorker(worker)}
                 >
-                  <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} />
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-body font-semibold text-gray-800 text-sm">
-                        {worker.name}
-                      </p>
-                      {worker.gender && (
-                        <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5 font-body capitalize">
-                          {worker.gender}
-                        </span>
+                  {/* Header: avatar + identity + price */}
+                  <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+                    <div className="relative shrink-0">
+                      {worker.photoUrl ? (
+                        <img
+                          src={worker.photoUrl}
+                          alt={worker.name}
+                          className="w-14 h-14 rounded-2xl object-cover ring-1 ring-gray-100"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
+                          <span className="font-heading font-bold text-primary text-lg">
+                            {worker.name[0]?.toUpperCase() ?? "?"}
+                          </span>
+                        </div>
+                      )}
+                      {worker.isAvailable && (
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                       )}
                     </div>
-                    {worker.rating > 0 && (
-                      <div className="flex items-center gap-0.5 mt-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            size={11}
-                            weight={s <= Math.round(worker.rating) ? "fill" : "regular"}
-                            className={s <= Math.round(worker.rating) ? "text-amber-400" : "text-gray-200"}
-                          />
-                        ))}
-                        <span className="font-body text-[11px] text-gray-500 ml-0.5">
-                          {worker.rating.toFixed(1)}
-                        </span>
-                      </div>
-                    )}
 
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {worker.pricing.map((p) => (
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-heading font-bold text-gray-900 text-[15px] leading-tight truncate">
+                          {worker.name}
+                        </h3>
+                        {minMonthly !== null && minMonthly > 0 && (
+                          <div className="text-right shrink-0 -mt-0.5">
+                            <p className="font-heading font-bold text-primary text-base leading-none">
+                              ₹{minMonthly}
+                              <span className="font-body text-[10px] font-medium text-gray-400 ml-0.5">
+                                /mo
+                              </span>
+                            </p>
+                            <p className="font-body text-[9px] text-gray-400 uppercase tracking-wider mt-0.5">
+                              Starting
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {worker.rating > 0 ? (
+                          <span className="inline-flex items-center gap-0.5">
+                            <Star
+                              size={12}
+                              weight="fill"
+                              className="text-amber-400"
+                            />
+                            <span className="font-body text-xs font-semibold text-gray-700">
+                              {worker.rating.toFixed(1)}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="font-body text-[11px] text-gray-400 font-medium">
+                            New
+                          </span>
+                        )}
+                        {worker.gender && (
+                          <>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <span className="font-body text-xs text-gray-500 capitalize">
+                              {worker.gender}
+                            </span>
+                          </>
+                        )}
+                        {worker.isAvailable && (
+                          <>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <span className="font-body text-[11px] font-medium text-emerald-600">
+                              Available
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Services strip */}
+                  {worker.pricing.length > 0 && (
+                    <div className="px-4 pb-3 flex items-center gap-1 overflow-hidden">
+                      {worker.pricing.slice(0, 3).map((p) => (
                         <span
                           key={p.serviceTypeId}
-                          className={`text-xs rounded-full px-2 py-0.5 font-body font-medium ${
+                          className={`text-[11px] rounded-full px-2.5 py-1 font-body font-medium whitespace-nowrap ${
                             SERVICE_PILL_COLORS[p.serviceTypeId] ??
                             "bg-gray-100 text-gray-600"
                           }`}
@@ -432,58 +457,80 @@ export default function ResidentHomePage() {
                           {SERVICE_LABELS[p.serviceTypeId] ?? p.serviceTypeId}
                         </span>
                       ))}
+                      {worker.pricing.length > 3 && (
+                        <span className="text-[11px] font-body font-semibold text-gray-500 px-1">
+                          +{worker.pricing.length - 3}
+                        </span>
+                      )}
                     </div>
+                  )}
 
-                    {/* Availability */}
-                    {(worker.shifts?.length > 0 || worker.workingDays.length > 0) && (
-                      <div className="mt-2 pt-2 border-t border-gray-100 space-y-1.5">
-                        {worker.workingDays.length > 0 && (
-                          <div className="flex items-center gap-1.5">
-                            <CalendarDot size={13} weight="fill" className="text-primary/50 shrink-0" />
-                            <div className="flex gap-0.5">
-                              {DAY_INITIALS.map((d) => (
-                                <span
-                                  key={d.id}
-                                  className={`font-body text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ${
-                                    worker.workingDays.includes(d.id)
-                                      ? "bg-primary text-white"
-                                      : "text-gray-300"
-                                  }`}
-                                >
-                                  {d.label}
-                                </span>
-                              ))}
-                            </div>
+                  {/* Schedule strip */}
+                  {(worker.shifts?.length > 0 ||
+                    worker.workingDays.length > 0) && (
+                    <div className="mx-4 mb-3 bg-gray-50/80 rounded-xl px-3 py-2.5 space-y-2">
+                      {worker.workingDays.length > 0 && (
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-body text-[9px] font-bold text-gray-400 uppercase tracking-wider w-10 shrink-0">
+                            Days
+                          </span>
+                          <div className="flex gap-1">
+                            {DAY_INITIALS.map((d) => (
+                              <span
+                                key={d.id}
+                                className={`font-body text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-md ${
+                                  worker.workingDays.includes(d.id)
+                                    ? "bg-primary text-white"
+                                    : "bg-white text-gray-300"
+                                }`}
+                              >
+                                {d.label}
+                              </span>
+                            ))}
                           </div>
-                        )}
-                        {worker.shifts?.length > 0 && (
-                          <div className="flex items-center gap-1.5">
-                            <ClockAfternoon size={14} weight="fill" className="text-primary/50 shrink-0" />
-                            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-                              {worker.shifts.map((s, i) => (
-                                <span key={i} className="font-body text-[11px] text-gray-500">
-                                  {formatShift(s)}
-                                </span>
-                              ))}
-                            </div>
+                        </div>
+                      )}
+                      {worker.shifts?.length > 0 && (
+                        <div className="flex items-start gap-2.5">
+                          <span className="font-body text-[9px] font-bold text-gray-400 uppercase tracking-wider w-10 shrink-0 mt-1">
+                            Hours
+                          </span>
+                          <div className="flex flex-wrap gap-1 flex-1 min-w-0">
+                            {worker.shifts.map((s, i) => (
+                              <span
+                                key={i}
+                                className="font-body text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-md px-2 py-0.5 whitespace-nowrap"
+                              >
+                                {formatShift(s)}
+                              </span>
+                            ))}
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                    {minMonthly !== null && minMonthly > 0 && (
-                      <p className="font-body text-xs text-primary font-semibold mt-1">
-                        From ₹{minMonthly}/mo
-                      </p>
-                    )}
+                  {/* CTA */}
+                  <div className="px-4 pb-4 pt-1 flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailWorker(worker);
+                      }}
+                      className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                    >
+                      View Profile
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setBookingWorker(worker);
+                      }}
+                      className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl bg-accent text-white hover:bg-accent-600 active:scale-[0.98] transition-all"
+                    >
+                      Book Now
+                    </button>
                   </div>
-
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setBookingWorker(worker); }}
-                    className="btn-primary !px-4 !py-2 !text-sm shrink-0"
-                  >
-                    Book
-                  </button>
                 </div>
               );
             })}

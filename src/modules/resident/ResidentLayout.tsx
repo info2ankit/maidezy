@@ -12,10 +12,9 @@ const ResidentBookingsPage  = lazy(() => import('./pages/ResidentBookingsPage'))
 const ResidentProfilePage   = lazy(() => import('./pages/ResidentProfilePage'))
 
 export default function ResidentLayout() {
-  const { user }                       = useAuthStore()
-  const { resident, setResident }      = useResidentStore()
-  const [checking, setChecking]        = useState(true)
-  const [pendingCount, setPendingCount] = useState(0)
+  const { user }                                       = useAuthStore()
+  const { resident, setResident, pendingCount, setPendingCount } = useResidentStore()
+  const [checking, setChecking]                        = useState(true)
 
   useEffect(() => {
     async function check() {
@@ -41,7 +40,7 @@ export default function ResidentLayout() {
       } catch { /* ignore */ }
     }
     loadCount()
-  }, [resident?.id])
+  }, [resident?.id, setPendingCount])
 
   async function handleOnboardingComplete() {
     if (!user?.id) return

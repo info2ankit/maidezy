@@ -90,7 +90,7 @@ function StepIndicator({ step }: { step: number }) {
 }
 
 export default function BookingModal({ worker, onClose, onBooked }: Props) {
-  const { resident } = useResidentStore()
+  const { resident, incPendingCount } = useResidentStore()
 
   const [isVisible, setIsVisible] = useState(false)
   const [step, setStep] = useState(1)
@@ -151,6 +151,7 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
         pricingMode,
         totalPrice: computeTotal(),
       })
+      incPendingCount()
       setStep(4)
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to send request. Try again.')
