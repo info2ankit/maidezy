@@ -7,7 +7,13 @@ import {
   X,
   Users,
   Star,
+  Funnel,
 } from "@phosphor-icons/react";
+import WorkerFilterSheet, {
+  EMPTY_FILTERS,
+  countActiveFilters,
+} from "../components/WorkerFilterSheet";
+import type { WorkerFilters } from "../components/WorkerFilterSheet";
 import { DISPLAY_TIMES } from "@/shared/constants/timeSlots";
 import type { WorkerShift } from "@/shared/types/worker.types";
 import type { WorkingDayId } from "@/shared/constants/timeSlots";
@@ -133,6 +139,9 @@ export default function ResidentHomePage() {
   const [bookingWorker, setBookingWorker] = useState<ResidentWorker | null>(
     null,
   );
+  const [filters, setFilters] = useState<WorkerFilters>(EMPTY_FILTERS);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const activeFilterCount = countActiveFilters(filters);
 
   useEffect(() => {
     if (!resident) return;
@@ -170,21 +179,70 @@ export default function ResidentHomePage() {
     }
   }
 
-  // Filter workers by active category AND search query
+  // Filter workers by active category, search query, AND advanced filters
   const workers = allWorkers.filter((w) => {
     const matchesCategory =
       !activeCategory ||
       w.pricing.some((p) => p.serviceTypeId === activeCategory);
     if (!matchesCategory) return false;
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    const nameMatch = w.name.toLowerCase().includes(q);
-    const serviceMatch = w.pricing.some((p) =>
-      (SERVICE_LABELS[p.serviceTypeId] ?? p.serviceTypeId)
-        .toLowerCase()
-        .includes(q),
-    );
-    return nameMatch || serviceMatch;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const nameMatch = w.name.toLowerCase().includes(q);
+      const serviceMatch = w.pricing.some((p) =>
+        (SERVICE_LABELS[p.serviceTypeId] ?? p.serviceTypeId)
+          .toLowerCase()
+          .includes(q),
+      );
+      if (!nameMatch && !serviceMatch) return false;
+    }
+
+    if (filters.services.length) {
+      const hasAny = w.pricing.some((p) =>
+        filters.services.includes(p.serviceTypeId),
+      );
+      if (!hasAny) return false;
+    }
+
+    if (filters.gender && w.gender !== filters.gender) return false;
+
+    if (filters.onlyAvailable && !w.isAvailable) return false;
+
+    if (
+      filters.workingDays.length &&
+      !filters.workingDays.every((d) => w.workingDays.includes(d))
+    ) {
+      return false;
+    }
+
+    if (filters.timeStart || filters.timeEnd) {
+      const start = filters.timeStart ?? "00:00";
+      const end = filters.timeEnd ?? "23:59";
+      const covers = w.shifts.some((s) => s.start <= start && s.end >= end);
+      if (!covers) return false;
+    }
+
+    if (filters.pricingMode) {
+      const hasMode = w.pricing.some((p) =>
+        filters.pricingMode === "monthly"
+          ? p.monthlyRate > 0
+          : p.perVisitRate > 0,
+      );
+      if (!hasMode) return false;
+    }
+
+    if (filters.priceMin !== null || filters.priceMax !== null) {
+      const rateOf = (p: (typeof w.pricing)[number]) =>
+        filters.pricingMode === "per_visit" ? p.perVisitRate : p.monthlyRate;
+      const candidatePrices = w.pricing.map(rateOf).filter((n) => n > 0);
+      if (candidatePrices.length === 0) return false;
+      const min = filters.priceMin ?? 0;
+      const max = filters.priceMax ?? Number.POSITIVE_INFINITY;
+      const ok = candidatePrices.some((p) => p >= min && p <= max);
+      if (!ok) return false;
+    }
+
+    return true;
   });
 
   const displayName = user?.name?.split(" ")[0] ?? "there";
@@ -221,8 +279,8 @@ export default function ResidentHomePage() {
       </div>
 
       {/* ── Search bar (overlapping header) ─────────────────────────── */}
-      <div className="mx-4 -mt-5 mb-4">
-        <div className="bg-white rounded-2xl shadow-card border border-gray-100 flex items-center gap-3 px-4 py-3.5">
+      <div className="mx-4 -mt-5 mb-4 flex items-center gap-2">
+        <div className="flex-1 bg-white rounded-2xl shadow-card border border-gray-100 flex items-center gap-3 px-4 py-3.5">
           <MagnifyingGlass
             size={18}
             weight="regular"
@@ -236,7 +294,7 @@ export default function ResidentHomePage() {
               if (activeCategory) setActiveCategory(null);
             }}
             placeholder="Search workers or services…"
-            className="flex-1 font-body text-sm text-gray-700 placeholder:text-gray-400 bg-transparent outline-none"
+            className="flex-1 min-w-0 font-body text-sm text-gray-700 placeholder:text-gray-400 bg-transparent outline-none"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery("")} className="shrink-0">
@@ -244,6 +302,26 @@ export default function ResidentHomePage() {
             </button>
           )}
         </div>
+        <button
+          onClick={() => setShowFilterSheet(true)}
+          className={`relative shrink-0 w-12 h-12 rounded-2xl shadow-card border flex items-center justify-center transition-colors ${
+            activeFilterCount > 0
+              ? "bg-primary border-primary"
+              : "bg-white border-gray-100"
+          }`}
+          aria-label="Filters"
+        >
+          <Funnel
+            size={18}
+            weight={activeFilterCount > 0 ? "fill" : "regular"}
+            className={activeFilterCount > 0 ? "text-white" : "text-gray-500"}
+          />
+          {activeFilterCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* ── Service icon filter row ──────────────────────────────────── */}
@@ -559,6 +637,15 @@ export default function ResidentHomePage() {
             setBookingWorker(null);
             navigate("/resident/bookings");
           }}
+        />
+      )}
+
+      {/* ── Filter Sheet ─────────────────────────────────────────────── */}
+      {showFilterSheet && (
+        <WorkerFilterSheet
+          initial={filters}
+          onApply={setFilters}
+          onClose={() => setShowFilterSheet(false)}
         />
       )}
     </div>
