@@ -457,8 +457,8 @@ export default function ResidentHomePage() {
                           </div>
                         )}
                         {worker.shifts?.length > 0 && (
-                          <div className="flex items-start gap-1.5">
-                            <ClockAfternoon size={13} weight="fill" className="text-primary/50 shrink-0 mt-0.5" />
+                          <div className="flex items-center gap-1.5">
+                            <ClockAfternoon size={14} weight="fill" className="text-primary/50 shrink-0" />
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                               {worker.shifts.map((s, i) => (
                                 <span key={i} className="font-body text-[11px] text-gray-500">

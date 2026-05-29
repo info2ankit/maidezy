@@ -247,6 +247,50 @@ export async function fetchResidentBookings(residentId: string): Promise<Residen
   })
 }
 
+export interface BookingDetailExtras {
+  shifts: WorkerShift[]
+  workingDays: WorkingDayId[]
+  pricing: WorkerPricing[]
+}
+
+export async function fetchBookingDetailExtras(
+  providerId: string,
+  serviceTypeIds: string[],
+): Promise<BookingDetailExtras> {
+  const { data: spData } = await supabase
+    .from('service_providers')
+    .select('user_id')
+    .eq('id', providerId)
+    .maybeSingle()
+
+  if (!spData) return { shifts: [], workingDays: [], pricing: [] }
+  const userId = spData.user_id as string
+
+  const [availRes, pricingRes] = await Promise.all([
+    supabase
+      .from('worker_availability')
+      .select('shifts, working_days')
+      .eq('worker_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('worker_service_pricing')
+      .select('service_type_id, monthly_rate, per_visit_rate')
+      .eq('worker_id', userId)
+      .in('service_type_id', serviceTypeIds)
+      .eq('is_active', true),
+  ])
+
+  return {
+    shifts: (availRes.data?.shifts ?? []) as WorkerShift[],
+    workingDays: (availRes.data?.working_days ?? []) as WorkingDayId[],
+    pricing: (pricingRes.data ?? []).map((p) => ({
+      serviceTypeId: p.service_type_id,
+      monthlyRate: p.monthly_rate ?? 0,
+      perVisitRate: p.per_visit_rate ?? 0,
+    })),
+  }
+}
+
 export async function cancelResidentBooking(bookingId: string): Promise<void> {
   const { error } = await supabase
     .from('bookings')

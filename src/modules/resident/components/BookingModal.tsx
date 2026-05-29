@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, SpinnerGap, Check, CheckCircle, ChatCircleDots, Clock, ArrowRight } from '@phosphor-icons/react'
+import { X, SpinnerGap, Check, CheckCircle, ChatCircleDots, Clock, ArrowRight, CalendarBlank, CalendarDots } from '@phosphor-icons/react'
 import { SERVICE_TYPES } from '@/shared/constants/serviceTypes'
 import { WORKING_DAYS, DISPLAY_TIMES } from '@/shared/constants/timeSlots'
 import type { WorkingDayId } from '@/shared/constants/timeSlots'
@@ -99,7 +99,8 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
   const [selectedServices, setSelectedServices] = useState<string[]>([])
 
   // Step 2
-  const [arrivalTime, setArrivalTime] = useState<string>('')
+  const [bookingType, setBookingType]   = useState<'one_time' | 'regular'>('regular')
+  const [arrivalTime, setArrivalTime]   = useState<string>('')
   const [selectedDays, setSelectedDays] = useState<WorkingDayId[]>([])
 
   // Step 3
@@ -282,9 +283,40 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
         {/* ── Step 2: Schedule ─────────────────────────────────────── */}
         {step === 2 && (
           <div className="px-5 py-4">
-            <h3 className="font-heading font-bold text-gray-800 text-base mb-3">
+            {/* Booking type toggle */}
+            <p className="font-body text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+              Booking type
+            </p>
+            <div className="flex gap-2 mb-5">
+              <button
+                onClick={() => { setBookingType('one_time'); setSelectedDays([]); setPricingMode('per_visit') }}
+                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${
+                  bookingType === 'one_time'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-gray-100 bg-white hover:border-gray-200'
+                }`}
+              >
+                <CalendarBlank size={20} weight="duotone" className={bookingType === 'one_time' ? 'text-primary' : 'text-gray-400'} />
+                <span className={`font-body text-xs font-semibold ${bookingType === 'one_time' ? 'text-primary' : 'text-gray-500'}`}>One-time Visit</span>
+                <span className="font-body text-[10px] text-gray-400">Pay per visit</span>
+              </button>
+              <button
+                onClick={() => { setBookingType('regular'); setPricingMode('monthly') }}
+                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${
+                  bookingType === 'regular'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-gray-100 bg-white hover:border-gray-200'
+                }`}
+              >
+                <CalendarDots size={20} weight="duotone" className={bookingType === 'regular' ? 'text-primary' : 'text-gray-400'} />
+                <span className={`font-body text-xs font-semibold ${bookingType === 'regular' ? 'text-primary' : 'text-gray-500'}`}>Regular Schedule</span>
+                <span className="font-body text-[10px] text-gray-400">Weekly recurring</span>
+              </button>
+            </div>
+
+            <p className="font-body text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
               Arrival time
-            </h3>
+            </p>
             <div className="overflow-x-auto pb-2 -mx-5 px-5">
               <div className="flex gap-2 w-max">
                 {timeEntries.map(([time, label]) => (
@@ -303,27 +335,31 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
               </div>
             </div>
 
-            <h3 className="font-heading font-bold text-gray-800 text-base mt-5 mb-3">
-              Which days?
-            </h3>
-            <div className="flex gap-2 flex-wrap">
-              {WORKING_DAYS.map((day) => {
-                const isActive = selectedDays.includes(day.id)
-                return (
-                  <button
-                    key={day.id}
-                    onClick={() => toggleDay(day.id)}
-                    className={`w-10 h-10 rounded-full font-body font-semibold text-sm transition-all ${
-                      isActive
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {DAY_LABELS[day.id]}
-                  </button>
-                )
-              })}
-            </div>
+            {bookingType === 'regular' && (
+              <>
+                <p className="font-body text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-5 mb-2">
+                  Which days?
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {WORKING_DAYS.map((day) => {
+                    const isActive = selectedDays.includes(day.id)
+                    return (
+                      <button
+                        key={day.id}
+                        onClick={() => toggleDay(day.id)}
+                        className={`w-10 h-10 rounded-full font-body font-semibold text-sm transition-all ${
+                          isActive
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {DAY_LABELS[day.id]}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
 
             <div className="flex gap-3 mt-6">
               <button
@@ -334,7 +370,7 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
               </button>
               <button
                 onClick={() => setStep(3)}
-                disabled={!arrivalTime || selectedDays.length === 0}
+                disabled={!arrivalTime || (bookingType === 'regular' && selectedDays.length === 0)}
                 className="flex-1 btn-primary"
               >
                 Next →
@@ -348,22 +384,29 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
           <div className="px-5 py-4">
             <h3 className="font-heading font-bold text-gray-800 text-base mb-4">Pricing</h3>
 
-            {/* Mode toggle */}
-            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5">
-              {(['monthly', 'per_visit'] as PricingMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setPricingMode(mode)}
-                  className={`flex-1 py-2 rounded-xl font-body font-semibold text-sm transition-all ${
-                    pricingMode === mode
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {mode === 'monthly' ? 'Monthly' : 'Per Visit'}
-                </button>
-              ))}
-            </div>
+            {/* Mode toggle — only for regular bookings */}
+            {bookingType === 'regular' ? (
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5">
+                {(['monthly', 'per_visit'] as PricingMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setPricingMode(mode)}
+                    className={`flex-1 py-2 rounded-xl font-body font-semibold text-sm transition-all ${
+                      pricingMode === mode
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {mode === 'monthly' ? 'Monthly' : 'Per Visit'}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 mb-5">
+                <CalendarBlank size={15} weight="fill" className="text-blue-500 shrink-0" />
+                <p className="font-body text-sm text-blue-700 font-medium">One-time visit — priced per visit</p>
+              </div>
+            )}
 
             {/* Price breakdown */}
             <div className="space-y-2 mb-4">
@@ -393,30 +436,36 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
             {/* Summary card */}
             <div className="bg-gray-50 rounded-2xl p-4 mb-5 space-y-2">
               <div className="flex items-start gap-2">
+                <span className="font-body text-xs text-gray-400 w-16 shrink-0 pt-0.5">Type</span>
+                <span className="font-body text-xs font-medium text-gray-700">
+                  {bookingType === 'one_time' ? 'One-time Visit' : 'Regular Schedule'}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
                 <span className="font-body text-xs text-gray-400 w-16 shrink-0 pt-0.5">Time</span>
                 <span className="font-body text-xs font-medium text-gray-700">
                   {DISPLAY_TIMES[arrivalTime] ?? arrivalTime}
                 </span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="font-body text-xs text-gray-400 w-16 shrink-0 pt-0.5">Days</span>
-                <div className="flex flex-wrap gap-1">
-                  {selectedDays.map((d) => (
-                    <span
-                      key={d}
-                      className="font-body text-xs font-medium text-gray-700 bg-white rounded-full px-2 py-0.5 border border-gray-200"
-                    >
-                      {d.charAt(0).toUpperCase() + d.slice(1)}
-                    </span>
-                  ))}
+              {bookingType === 'regular' && (
+                <div className="flex items-start gap-2">
+                  <span className="font-body text-xs text-gray-400 w-16 shrink-0 pt-0.5">Days</span>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedDays.map((d) => (
+                      <span
+                        key={d}
+                        className="font-body text-xs font-medium text-gray-700 bg-white rounded-full px-2 py-0.5 border border-gray-200"
+                      >
+                        {d.charAt(0).toUpperCase() + d.slice(1)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="flex items-start gap-2">
                 <span className="font-body text-xs text-gray-400 w-16 shrink-0 pt-0.5">Services</span>
                 <span className="font-body text-xs font-medium text-gray-700">
-                  {selectedServices
-                    .map((id) => SERVICE_LABELS[id] ?? id)
-                    .join(', ')}
+                  {selectedServices.map((id) => SERVICE_LABELS[id] ?? id).join(', ')}
                 </span>
               </div>
             </div>

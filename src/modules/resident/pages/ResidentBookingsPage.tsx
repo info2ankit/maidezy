@@ -9,6 +9,7 @@ import type { ResidentBookingRow } from '../services/residentPortalService'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import EmptyState from '@/shared/components/EmptyState'
 import ConfirmDialog from '@/shared/components/ConfirmDialog'
+import BookingDetailModal from '../components/BookingDetailModal'
 
 type Tab = 'pending' | 'active' | 'history'
 
@@ -59,6 +60,7 @@ export default function ResidentBookingsPage() {
   const [tab, setTab]                 = useState<Tab>('pending')
   const [pendingCancel, setPendingCancel] = useState<ResidentBookingRow | null>(null)
   const [cancelling, setCancelling]   = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<ResidentBookingRow | null>(null)
 
   async function load() {
     if (!resident?.id) return
@@ -165,7 +167,7 @@ export default function ResidentBookingsPage() {
             const StatusIcon = meta.icon
 
             return (
-              <div key={b.id} className="card space-y-3">
+              <div key={b.id} className="card space-y-3 cursor-pointer active:scale-[0.99] transition-transform" onClick={() => setSelectedBooking(b)}>
                 {/* Worker + status */}
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
@@ -196,8 +198,8 @@ export default function ResidentBookingsPage() {
                 {/* Schedule */}
                 <div className="flex items-center gap-4 text-xs font-body text-gray-500">
                   <span className="flex items-center gap-1">
-                    <Clock size={12} weight="duotone" className="text-gray-400" />
-                    {DISPLAY_TIMES[b.arrivalTime] ?? b.arrivalTime}
+                    <Clock size={14} weight="duotone" className="text-gray-400" />
+                    {DISPLAY_TIMES[b.arrivalTime?.slice(0, 5)] ?? b.arrivalTime}
                   </span>
                   <div className="flex gap-1">
                     {(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const).map((d) => {
@@ -230,7 +232,7 @@ export default function ResidentBookingsPage() {
                   </div>
                   {b.status === 'pending' && (
                     <button
-                      onClick={() => setPendingCancel(b)}
+                      onClick={(e) => { e.stopPropagation(); setPendingCancel(b) }}
                       className="text-xs font-body font-semibold text-danger hover:text-danger-dark transition-colors flex items-center gap-1"
                     >
                       <XCircle size={13} weight="fill" />
@@ -242,6 +244,18 @@ export default function ResidentBookingsPage() {
             )
           })}
         </div>
+      )}
+
+      {selectedBooking && (
+        <BookingDetailModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onCancelled={(id) => {
+            setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: 'cancelled' } : b))
+            setSelectedBooking(null)
+          }}
+          onCancelRequest={(b) => { setSelectedBooking(null); setPendingCancel(b) }}
+        />
       )}
 
       {pendingCancel && (

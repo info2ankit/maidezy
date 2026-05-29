@@ -50,7 +50,7 @@ function formatShift(s: WorkerShift) {
 interface Props {
   worker: ResidentWorker
   onClose: () => void
-  onBook: () => void
+  onBook: (serviceId?: string) => void
 }
 
 export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
@@ -78,9 +78,9 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
     setTimeout(onClose, 300)
   }
 
-  function handleBook() {
+  function handleBook(serviceId?: string) {
     setIsVisible(false)
-    setTimeout(onBook, 300)
+    setTimeout(() => onBook(serviceId), 300)
   }
 
   const hasRating = worker.rating > 0
@@ -197,9 +197,10 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
                   bg: 'bg-gray-100',
                 }
                 return (
-                  <div
+                  <button
                     key={p.serviceTypeId}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl"
+                    onClick={() => handleBook(p.serviceTypeId)}
+                    className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-2xl active:bg-gray-100 transition-colors text-left"
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colors.bg}`}
@@ -208,19 +209,15 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
                         <Icon size={20} weight="duotone" className={colors.icon} />
                       )}
                     </div>
-                    <p className="font-body font-semibold text-gray-800 text-sm flex-1">
-                      {SERVICE_LABELS[p.serviceTypeId] ?? p.serviceTypeId}
-                    </p>
-                    <div className="text-right shrink-0">
-                      <p className="font-heading font-bold text-gray-900 text-sm">
-                        ₹{p.monthlyRate}
-                        <span className="font-body font-normal text-gray-400 text-xs">/mo</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body font-semibold text-gray-800 text-sm">
+                        {SERVICE_LABELS[p.serviceTypeId] ?? p.serviceTypeId}
                       </p>
-                      <p className="font-body text-xs text-gray-400">
-                        ₹{p.perVisitRate}/visit
+                      <p className="font-body text-xs text-gray-400 mt-0.5">
+                        ₹{p.monthlyRate}/mo · ₹{p.perVisitRate}/visit
                       </p>
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
@@ -299,11 +296,14 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
         {/* ── Book CTA ─────────────────────────────────────────────────── */}
         <div className="px-5 pt-2 pb-8 border-t border-gray-100">
           <button
-            onClick={handleBook}
+            onClick={() => handleBook()}
             className="btn-primary w-full text-base py-4 rounded-2xl mt-4"
           >
-            Book {worker.name.split(' ')[0]}
+            Next →
           </button>
+          <p className="font-body text-xs text-gray-400 text-center mt-2">
+            Select services, time &amp; days
+          </p>
         </div>
       </div>
     </>
