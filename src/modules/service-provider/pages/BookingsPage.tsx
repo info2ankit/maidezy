@@ -9,11 +9,14 @@ import EmptyState from '@/shared/components/EmptyState'
 import type { BookingStatus } from '@/shared/types'
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
-  pending:   'badge-pending',
-  confirmed: 'badge-pending',
-  active:    'badge-success',
-  completed: 'bg-gray-100 text-gray-600 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold',
-  cancelled: 'badge-danger',
+  pending:              'badge-pending',
+  confirmed:            'badge-pending',
+  accepted:             'badge-success',
+  reschedule_requested: 'badge-pending',
+  active:               'badge-success',
+  completed:            'bg-gray-100 text-gray-600 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold',
+  rejected:             'badge-danger',
+  cancelled:            'badge-danger',
 }
 
 type Filter = 'all' | 'upcoming' | 'active' | 'history'
@@ -37,9 +40,9 @@ export default function BookingsPage() {
 
   const filtered = bookings.filter((b) => {
     if (filter === 'all')      return true
-    if (filter === 'upcoming') return ['pending', 'confirmed'].includes(b.status)
+    if (filter === 'upcoming') return ['pending', 'confirmed', 'accepted'].includes(b.status)
     if (filter === 'active')   return b.status === 'active'
-    if (filter === 'history')  return ['completed', 'cancelled'].includes(b.status)
+    if (filter === 'history')  return ['completed', 'cancelled', 'rejected'].includes(b.status)
     return true
   })
 
@@ -98,12 +101,14 @@ export default function BookingsPage() {
               <div className="flex items-center gap-3 text-xs text-gray-500 font-body pt-2 border-t border-gray-100 flex-wrap">
                 <span className="flex items-center gap-1">
                   <CalendarBlank size={12} weight="duotone" />
-                  {new Date(b.start_date).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })}
+                  {b.start_date
+                    ? new Date(b.start_date).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })
+                    : new Date(b.created_at).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })}
                   {b.end_date && ` – ${new Date(b.end_date).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })}`}
                 </span>
-                {b.amount && (
+                {(b.total_price ?? b.amount) && (
                   <span className="flex items-center gap-1 font-semibold text-primary">
-                    <CurrencyInr size={12} weight="bold" />{b.amount}
+                    <CurrencyInr size={12} weight="bold" />{b.total_price ?? b.amount}
                   </span>
                 )}
               </div>

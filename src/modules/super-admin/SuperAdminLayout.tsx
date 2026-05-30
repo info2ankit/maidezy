@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { SignOut } from '@phosphor-icons/react'
 import Sidebar from './components/Sidebar'
 import DashboardPage from './pages/DashboardPage'
 import SocietiesPage from './pages/SocietiesPage'
@@ -6,8 +7,21 @@ import AdminsPage from './pages/AdminsPage'
 import WorkerAdminsPage from './pages/WorkerAdminsPage'
 import ReportsPage from './pages/ReportsPage'
 import LanguageToggle from '@/shared/components/LanguageToggle'
+import NotificationsBell from '@/shared/components/NotificationsBell'
+import Logo from '@/shared/components/Logo'
+import { useAuthStore } from '@/shared/stores/authStore'
+import { signOut } from '@/shared/services/authService'
 
 export default function SuperAdminLayout() {
+  const navigate = useNavigate()
+  const logout   = useAuthStore((s) => s.logout)
+
+  async function handleLogout() {
+    await signOut()
+    logout()
+    navigate('/admin/login', { replace: true })
+  }
+
   return (
     <div className="flex min-h-screen bg-bg">
       <Sidebar />
@@ -15,16 +29,24 @@ export default function SuperAdminLayout() {
       {/* Main content */}
       <main className="flex-1 overflow-auto pb-20 md:pb-0">
         {/* Top bar (mobile only) */}
-        <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-          <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-heading font-bold text-xs">M</span>
-          </div>
-          <span className="font-heading font-bold text-primary text-base flex-1">Super Admin</span>
+        <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-2.5 flex items-center gap-3">
+          <Logo height={28} />
+          <span className="font-body text-xs text-gray-400 flex-1">Super Admin</span>
+          <NotificationsBell />
           <LanguageToggle />
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="Logout"
+            className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-danger-light flex items-center justify-center text-gray-500 hover:text-danger transition-colors"
+          >
+            <SignOut size={16} weight="bold" />
+          </button>
         </div>
 
         {/* Top bar (desktop only) */}
-        <div className="hidden md:flex sticky top-0 z-40 bg-bg/80 backdrop-blur-sm px-8 py-3 justify-end">
+        <div className="hidden md:flex sticky top-0 z-40 bg-bg/80 backdrop-blur-sm px-8 py-3 justify-end items-center gap-3">
+          <NotificationsBell />
           <LanguageToggle />
         </div>
 

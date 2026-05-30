@@ -39,24 +39,34 @@ export interface TimeSlot {
 }
 
 export interface BookingRequest {
-  id:             string
-  residentId:     string
-  residentName:   string
-  residentFlatNo: string
-  workerId:       string
-  serviceTypeIds: string[]
-  arrivalTime:    string     // '07:00'
-  daysOfWeek:     WorkingDayId[]
-  pricingMode:    PricingMode
-  totalPrice:     number
-  status:         BookingStatus
-  otpCode:        string
-  createdAt:      string
+  id:                  string
+  residentId:          string
+  residentName:        string
+  residentFlatNo:      string
+  residentBlock:       string
+  residentMobile:      string
+  societyName:         string
+  workerId:            string
+  serviceTypeIds:      string[]
+  arrivalTime:         string     // '07:00'
+  daysOfWeek:          WorkingDayId[]
+  pricingMode:         PricingMode
+  totalPrice:          number
+  status:              BookingStatus
+  otpCode:             string
+  proposedArrivalTime: string | null
+  proposedDaysOfWeek:  WorkingDayId[] | null
+  proposedNote:        string | null
+  proposedPrice:       number | null
+  proposedBy:          string | null
+  proposedByRole:      'worker' | 'worker_admin' | 'resident' | null
+  createdAt:           string
 }
 
 export type BookingStatus =
   | 'pending'
   | 'accepted'
+  | 'reschedule_requested'
   | 'rejected'
   | 'active'
   | 'completed'

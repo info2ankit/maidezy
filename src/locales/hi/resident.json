@@ -1,3 +1,10 @@
 {
-  "_note": "Resident namespace — populated in Module 4"
+  "counter": {
+    "banner_worker": "Worker ने नई पेशकश भेजी",
+    "banner_mine": "आपकी पेशकश · Worker के जवाब का इंतज़ार",
+    "accept": "मंज़ूर करें",
+    "decline": "मना करें",
+    "counter": "बदलें",
+    "withdraw": "वापस लें"
+  }
 }

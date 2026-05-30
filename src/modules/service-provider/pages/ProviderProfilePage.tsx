@@ -3,19 +3,21 @@ import { useTranslation } from 'react-i18next'
 import {
   PencilSimple, Check, X, SpinnerGap,
   MapPin, Buildings, Toolbox, Clock, DeviceMobile,
-  GenderIntersex, House, User,
+  GenderIntersex, House, User, SignOut,
 } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useProvider } from '../components/ProviderContext'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { saveWorkerName, saveWorkerGenderAddress } from '@/shared/services/workerProfileService'
+import { signOut } from '@/shared/services/authService'
 import { SERVICE_TYPE_BY_ID } from '@/shared/constants/serviceTypes'
 import { DISPLAY_TIMES, WORKING_DAYS } from '@/shared/constants/timeSlots'
 import { fetchSocieties } from '@/shared/services/societyService'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import KycBadge from '@/shared/components/KycBadge'
+import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import KycNudgeBanner from '../components/KycNudgeBanner'
 import type { Society } from '@/shared/types'
 import type { WorkingDayId } from '@/shared/constants/timeSlots'
@@ -32,6 +34,23 @@ export default function ProviderProfilePage() {
   const { provider, isLoading, refresh } = useProvider()
   const user    = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
+  const logout  = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
+
+  const [confirmLogout, setConfirmLogout] = useState(false)
+  const [loggingOut,    setLoggingOut]    = useState(false)
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    try {
+      await signOut()
+      logout()
+      navigate('/login', { replace: true })
+    } catch {
+      setLoggingOut(false)
+      setConfirmLogout(false)
+    }
+  }
 
   const [societies, setSocieties]       = useState<Society[]>([])
   const [availability, setAvailability] = useState<WorkerAvailability | null>(null)
@@ -392,6 +411,29 @@ export default function ProviderProfilePage() {
           })}
         </div>
       </Section>
+
+      {/* Logout */}
+      <button
+        type="button"
+        onClick={() => setConfirmLogout(true)}
+        className="w-full mt-2 flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-danger/30 bg-danger-light text-danger-dark font-body font-semibold text-sm hover:bg-danger/10 transition-colors"
+      >
+        <SignOut size={16} weight="bold" />
+        {t('nav.logout')}
+      </button>
+
+      {confirmLogout && (
+        <ConfirmDialog
+          title={t('profile.logout_confirm_title')}
+          message={t('profile.logout_confirm_message')}
+          confirmLabel={t('profile.logout_confirm_yes')}
+          cancelLabel={t('profile.logout_cancel')}
+          variant="danger"
+          isLoading={loggingOut}
+          onConfirm={handleLogout}
+          onCancel={() => setConfirmLogout(false)}
+        />
+      )}
 
     </div>
   )

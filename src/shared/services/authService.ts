@@ -59,11 +59,11 @@ export async function verifyOtp(
     const firebaseUid = result.user.uid
     pendingConfirmation = null
 
-    // Use Firebase UID as the Supabase password.
-    // Firebase UID is stable per phone number (issued only after OTP verification),
-    // so the same phone always maps to the same Supabase account. This ensures
-    // auth.uid() is stable across sessions, which is required for RLS to work.
-    const email    = `${mobile}@firebase.maidezy.app`
+    // Each (mobile, role) pair gets its OWN Supabase auth identity so the same
+    // phone can sign in independently as Resident and as Worker. Firebase UID
+    // is stable per phone but role is part of the email, giving us two distinct
+    // accounts that happen to share a password.
+    const email    = authEmailFor(mobile, signupRole)
     const password = firebaseUid
 
     let authId: string
@@ -80,7 +80,7 @@ export async function verifyOtp(
       authId = signUpData.user.id
     }
 
-    const user = await resolveProfileByMobile(authId, mobile, signupRole)
+    const user = await resolveProfileByMobileAndRole(authId, mobile, signupRole)
     return { user }
   } catch (e: unknown) {
     const msg = (e as Error).message ?? 'OTP verification failed'
@@ -88,6 +88,80 @@ export async function verifyOtp(
     if (msg.includes('code-expired'))              return { error: 'OTP expired. Please request a new one.' }
     return { error: msg }
   }
+}
+
+type AdminRole = 'super_admin' | 'worker_admin'
+const ADMIN_ROLES: AdminRole[] = ['super_admin', 'worker_admin']
+
+/** Admin OTP verification. Same Firebase phone flow as residents/workers, but
+ *  the Supabase auth identity is namespaced with '-admin' so it doesn't collide
+ *  with a resident or worker account on the same number. */
+export async function verifyAdminOtp(
+  mobile: string,
+  token:  string,
+): Promise<{ user?: User; error?: string }> {
+  if (!pendingConfirmation) {
+    return { error: 'Session expired. Please request a new OTP.' }
+  }
+
+  try {
+    const result      = await pendingConfirmation.confirm(token)
+    const firebaseUid = result.user.uid
+    pendingConfirmation = null
+
+    // Look up the admin profile FIRST — before creating any auth identity.
+    // If this mobile isn't an admin we don't want to leave a stray auth row.
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('mobile', mobile)
+      .in('role', ADMIN_ROLES)
+      .maybeSingle()
+
+    if (!profile) {
+      return {
+        error:
+          'No admin account is registered for this mobile number. ' +
+          'Ask the Super Admin to add you (public.users with role super_admin or worker_admin).',
+      }
+    }
+
+    // Admin-namespaced Supabase auth identity. Keeps the session distinct from
+    // any resident/worker accounts the same person may also have.
+    const email    = `${mobile}-admin@firebase.maidezy.app`
+    const password = firebaseUid
+
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError || !signInData.user) {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
+      if (signUpError || !signUpData.user) {
+        return { error: signUpError?.message ?? 'Admin auth failed' }
+      }
+    }
+
+    return { user: profile as User }
+  } catch (e: unknown) {
+    const msg = (e as Error).message ?? 'OTP verification failed'
+    if (msg.includes('invalid-verification-code')) return { error: 'Incorrect OTP. Please try again.' }
+    if (msg.includes('code-expired'))              return { error: 'OTP expired. Please request a new one.' }
+    return { error: msg }
+  }
+}
+
+/** Returns RWA-admin society memberships for the given user, or empty list. */
+export async function fetchRwaAdminMembership(
+  userId: string,
+): Promise<{ isRwaAdmin: boolean; societyIds: string[] }> {
+  const { data } = await supabase
+    .from('rwa_admins')
+    .select('society_id')
+    .eq('user_id', userId)
+
+  const societyIds = (data ?? [])
+    .map((r) => r.society_id as string)
+    .filter((id): id is string => !!id)
+
+  return { isRwaAdmin: societyIds.length > 0, societyIds }
 }
 
 export async function signOut(): Promise<void> {
@@ -99,62 +173,44 @@ export async function signOut(): Promise<void> {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function resolveProfileByMobile(
+/** Build the Supabase auth email for a (mobile, role) pair. Same phone gets
+ *  a distinct auth identity per role, so resident-me and worker-me are isolated. */
+function authEmailFor(mobile: string, role: SignupRole): string {
+  return `${mobile}-${role}@firebase.maidezy.app`
+}
+
+async function resolveProfileByMobileAndRole(
   authId:     string,
   mobile:     string,
   signupRole: SignupRole,
 ): Promise<User> {
-  // 1. Check if a profile with this mobile already exists
-  const { data: byMobile } = await supabase
+  // 1. Existing profile for this (mobile, role)?
+  const { data: existing } = await supabase
     .from('users')
     .select('*')
     .eq('mobile', mobile)
+    .eq('role', signupRole)
     .maybeSingle()
 
-  if (byMobile) {
-    // If the auth session ID differs from the stored ID (happens when switching
-    // from anonymous to Firebase email auth), sync it via a SECURITY DEFINER
-    // RPC so RLS policies that check auth.uid() = users.id keep working.
-    if (byMobile.id !== authId) {
+  if (existing) {
+    // Same rationale as before: don't overwrite stored id with authId. Child
+    // tables FK against the stored id; sync_user_auth_id is a documented no-op
+    // until the FK rotation work lands (see migration 008 comment).
+    if (existing.id !== authId) {
       await supabase.rpc('sync_user_auth_id', { p_mobile: mobile, p_new_id: authId })
     }
-    return { ...byMobile, id: authId } as User
+    return existing as User
   }
 
-  // 2. Check if super admin pre-created a Worker Admin invite for this mobile
-  const { data: invite } = await supabase
-    .from('worker_admin_invites')
-    .select('*')
-    .eq('mobile', mobile)
-    .maybeSingle()
-
-  const role = invite ? 'worker_admin' : signupRole
-  const name = invite?.name ?? undefined
-
-  // 3. Create the profile
+  // 2. Create the profile for the chosen role.
   const { data: created, error } = await supabase
     .from('users')
-    .insert({ id: authId, mobile, role, ...(name ? { name } : {}), is_active: true })
+    .insert({ id: authId, mobile, role: signupRole, is_active: true })
     .select()
     .single()
 
   if (error || !created) {
     throw new Error(error?.message ?? 'Failed to create user profile')
   }
-
-  // 4. If invited as worker_admin — link gender + societies and clean up the invite
-  if (invite) {
-    await supabase
-      .from('worker_admins')
-      .upsert(
-        { user_id: authId, gender: invite.gender, society_ids: invite.society_ids ?? [] },
-        { onConflict: 'user_id' },
-      )
-    await supabase
-      .from('worker_admin_invites')
-      .delete()
-      .eq('mobile', mobile)
-  }
-
   return created as User
 }

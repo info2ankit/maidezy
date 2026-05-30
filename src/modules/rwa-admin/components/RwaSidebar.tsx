@@ -1,9 +1,9 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Home, Briefcase, MessageSquareWarning, Settings, LogOut } from 'lucide-react'
+import { NavLink, useNavigate, Link } from 'react-router-dom'
+import { LayoutDashboard, Home, Briefcase, MessageSquareWarning, Settings, LogOut, ArrowLeft } from 'lucide-react'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { signOut } from '@/shared/services/authService'
-import { APP_NAME } from '@/shared/utils/constants'
+import Logo from '@/shared/components/Logo'
 
 const navItems = [
   { label: 'Dashboard',  icon: LayoutDashboard,       path: '/rwa-admin/dashboard'  },
@@ -14,27 +14,25 @@ const navItems = [
 ]
 
 export default function RwaSidebar() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, role, isRwaAdmin } = useAuthStore()
   const navigate = useNavigate()
+  const isResidentAdmin = role === 'resident' && isRwaAdmin
 
   async function handleLogout() {
     await signOut()
     logout()
-    navigate('/login', { replace: true })
+    navigate('/admin/login', { replace: true })
   }
 
   return (
     <>
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 bg-primary min-h-screen">
-        <div className="px-5 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <span className="text-white font-heading font-bold text-sm">M</span>
-            </div>
-            <span className="font-heading font-bold text-white text-lg">{APP_NAME}</span>
+        <div className="px-5 py-5 border-b border-white/10">
+          <div className="bg-white rounded-xl px-3 py-2 inline-flex">
+            <Logo height={36} />
           </div>
-          <span className="text-white/40 text-xs font-body mt-1 block">RWA Admin</span>
+          <span className="text-white/40 text-xs font-body mt-2 block">RWA Admin</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -62,13 +60,23 @@ export default function RwaSidebar() {
             <p className="text-white/60 text-xs font-body px-3 mb-1 truncate">{user.name}</p>
           )}
           <p className="text-white/40 text-xs font-body px-3 mb-3 truncate">{user?.mobile}</p>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold font-body text-white/60 hover:bg-white/10 hover:text-white transition-all duration-150"
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
+          {isResidentAdmin ? (
+            <Link
+              to="/resident/home"
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold font-body text-white/60 hover:bg-white/10 hover:text-white transition-all duration-150"
+            >
+              <ArrowLeft size={18} />
+              Resident view
+            </Link>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold font-body text-white/60 hover:bg-white/10 hover:text-white transition-all duration-150"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
+          )}
         </div>
       </aside>
 

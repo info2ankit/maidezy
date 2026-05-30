@@ -378,6 +378,42 @@ export default function KycPage() {
         </div>
       )}
 
+      {provider?.kyc_status === 'rejected' && (
+        <div className="bg-danger-light border border-danger/30 rounded-2xl px-4 py-3.5 mb-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-danger/15 flex items-center justify-center shrink-0">
+              <WarningCircle size={18} weight="fill" className="text-danger" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-body font-bold text-danger-dark text-sm">
+                {t('kyc.rejected_title', { defaultValue: 'KYC was rejected' })}
+              </p>
+              {doc?.rejection_notes ? (
+                <div className="mt-2 bg-white/70 rounded-xl px-3 py-2 border border-danger/20">
+                  <p className="font-body text-[10px] font-bold text-danger uppercase tracking-wider mb-0.5">
+                    {t('kyc.rejected_reason_label', { defaultValue: 'Reason' })}
+                  </p>
+                  <p className="font-body text-xs text-gray-700 leading-snug whitespace-pre-line">
+                    {doc.rejection_notes}
+                  </p>
+                </div>
+              ) : (
+                <p className="font-body text-xs text-danger-dark/80 mt-1">
+                  {t('kyc.rejected_generic', {
+                    defaultValue: 'Your documents were not approved. Please re-upload below.',
+                  })}
+                </p>
+              )}
+              <p className="font-body text-xs text-gray-600 mt-2">
+                {t('kyc.rejected_cta', {
+                  defaultValue: 'Replace the rejected documents below and resubmit for review.',
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         <AadhaarSlot
           existingUrl={doc?.aadhaar_url ?? null}

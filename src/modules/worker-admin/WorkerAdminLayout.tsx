@@ -1,18 +1,21 @@
 import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom'
-import { SquaresFour, ClipboardText, Users, SignOut, Buildings } from '@phosphor-icons/react'
+import { SquaresFour, ClipboardText, Users, SignOut, Buildings, CalendarCheck } from '@phosphor-icons/react'
+import NotificationsBell from '@/shared/components/NotificationsBell'
 import type { Icon } from '@phosphor-icons/react'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { signOut } from '@/shared/services/authService'
-import { APP_NAME } from '@/shared/utils/constants'
+import Logo from '@/shared/components/Logo'
 import WaDashboardPage from './pages/WaDashboardPage'
 import WaKycPage       from './pages/WaKycPage'
 import WaWorkersPage   from './pages/WaWorkersPage'
+import WaBookingsPage  from './pages/WaBookingsPage'
 
 const navItems: { label: string; icon: Icon; path: string }[] = [
-  { label: 'Dashboard',   icon: SquaresFour,   path: '/worker-admin/dashboard' },
-  { label: 'KYC Reviews', icon: ClipboardText, path: '/worker-admin/kyc'       },
-  { label: 'Workers',     icon: Users,         path: '/worker-admin/workers'   },
+  { label: 'Dashboard',   icon: SquaresFour,    path: '/worker-admin/dashboard' },
+  { label: 'Bookings',    icon: CalendarCheck,  path: '/worker-admin/bookings'  },
+  { label: 'KYC Reviews', icon: ClipboardText,  path: '/worker-admin/kyc'       },
+  { label: 'Workers',     icon: Users,          path: '/worker-admin/workers'   },
 ]
 
 export default function WorkerAdminLayout() {
@@ -22,21 +25,18 @@ export default function WorkerAdminLayout() {
   async function handleLogout() {
     await signOut()
     logout()
-    navigate('/login', { replace: true })
+    navigate('/admin/login', { replace: true })
   }
 
   return (
     <div className="flex min-h-screen bg-bg">
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 bg-primary min-h-screen">
-        <div className="px-5 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <span className="text-white font-heading font-bold text-sm">M</span>
-            </div>
-            <span className="font-heading font-bold text-white text-lg">{APP_NAME}</span>
+        <div className="px-5 py-5 border-b border-white/10">
+          <div className="bg-white rounded-xl px-3 py-2 inline-flex">
+            <Logo height={36} />
           </div>
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-center gap-1.5 mt-2">
             <Buildings size={12} weight="duotone" className="text-white/40" />
             <span className="text-white/40 text-xs font-body">Worker Admin</span>
           </div>
@@ -81,17 +81,17 @@ export default function WorkerAdminLayout() {
 
       {/* ── Main content ── */}
       <main className="flex-1 overflow-auto pb-20 md:pb-0">
-        <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-          <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-heading font-bold text-xs">M</span>
-          </div>
-          <span className="font-heading font-bold text-primary text-base flex-1">Worker Admin</span>
+        <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-2.5 flex items-center gap-3">
+          <Logo height={28} />
+          <span className="font-body text-xs text-gray-400 flex-1">Worker Admin</span>
+          <NotificationsBell />
         </div>
 
         <div className="px-4 py-5 md:px-8 md:py-6">
           <Routes>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<WaDashboardPage />} />
+            <Route path="bookings"  element={<WaBookingsPage />} />
             <Route path="kyc"       element={<WaKycPage />} />
             <Route path="workers"   element={<WaWorkersPage />} />
             <Route path="*"         element={<Navigate to="dashboard" replace />} />

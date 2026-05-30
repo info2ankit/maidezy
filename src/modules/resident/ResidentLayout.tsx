@@ -1,15 +1,16 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
-import { House, CalendarCheck, User } from '@phosphor-icons/react'
+import { House, CalendarCheck, User, ChatCircleDots, ShieldStar } from '@phosphor-icons/react'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { useResidentStore } from './stores/residentStore'
 import { fetchResidentProfile, fetchResidentBookings } from './services/residentPortalService'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 
-const OnboardingScreen      = lazy(() => import('./screens/OnboardingScreen'))
-const ResidentHomePage      = lazy(() => import('./pages/ResidentHomePage'))
-const ResidentBookingsPage  = lazy(() => import('./pages/ResidentBookingsPage'))
-const ResidentProfilePage   = lazy(() => import('./pages/ResidentProfilePage'))
+const OnboardingScreen        = lazy(() => import('./screens/OnboardingScreen'))
+const ResidentHomePage        = lazy(() => import('./pages/ResidentHomePage'))
+const ResidentBookingsPage    = lazy(() => import('./pages/ResidentBookingsPage'))
+const ResidentComplaintsPage  = lazy(() => import('./pages/ResidentComplaintsPage'))
+const ResidentProfilePage     = lazy(() => import('./pages/ResidentProfilePage'))
 
 export default function ResidentLayout() {
   const { user }                                       = useAuthStore()
@@ -37,7 +38,9 @@ export default function ResidentLayout() {
       try {
         const bookings = await fetchResidentBookings(resident.id)
         setPendingCount(bookings.filter((b) => b.status === 'pending').length)
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.error('Failed to load pending booking count', e)
+      }
     }
     loadCount()
   }, [resident?.id, setPendingCount])
@@ -77,12 +80,13 @@ export default function ResidentLayout() {
           </div>
         }>
           <Routes>
-            <Route index           element={<Navigate to="home" replace />} />
-            <Route path="home"     element={<ResidentHomePage />} />
-            <Route path="browse"   element={<Navigate to="/resident/home" replace />} />
-            <Route path="bookings" element={<ResidentBookingsPage />} />
-            <Route path="profile"  element={<ResidentProfilePage />} />
-            <Route path="*"        element={<Navigate to="home" replace />} />
+            <Route index             element={<Navigate to="home" replace />} />
+            <Route path="home"       element={<ResidentHomePage />} />
+            <Route path="browse"     element={<Navigate to="/resident/home" replace />} />
+            <Route path="bookings"   element={<ResidentBookingsPage />} />
+            <Route path="complaints" element={<ResidentComplaintsPage />} />
+            <Route path="profile"    element={<ResidentProfilePage />} />
+            <Route path="*"          element={<Navigate to="home" replace />} />
           </Routes>
         </Suspense>
       </div>
@@ -94,11 +98,16 @@ export default function ResidentLayout() {
 
 function BottomNav({ pendingCount }: { pendingCount: number }) {
   const { pathname } = useLocation()
+  const isRwaAdmin = useAuthStore((s) => s.isRwaAdmin)
 
   const tabs = [
-    { to: '/resident/home',     icon: House,        label: 'Home',     badge: 0 },
-    { to: '/resident/bookings', icon: CalendarCheck, label: 'Bookings', badge: pendingCount },
-    { to: '/resident/profile',  icon: User,         label: 'Profile',  badge: 0 },
+    { to: '/resident/home',       icon: House,           label: 'Home',       badge: 0 },
+    { to: '/resident/bookings',   icon: CalendarCheck,   label: 'Bookings',   badge: pendingCount },
+    { to: '/resident/complaints', icon: ChatCircleDots,  label: 'Complaints', badge: 0 },
+    ...(isRwaAdmin
+      ? [{ to: '/rwa-admin/dashboard', icon: ShieldStar, label: 'Admin', badge: 0 }]
+      : []),
+    { to: '/resident/profile',    icon: User,            label: 'Profile',    badge: 0 },
   ]
 
   return (

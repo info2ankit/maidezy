@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   CalendarCheck, Clock, CurrencyInr, XCircle, SpinnerGap,
   User as UserIcon, CheckCircle, Hourglass, Prohibit,
 } from '@phosphor-icons/react'
 import { useResidentStore } from '../stores/residentStore'
-import { fetchResidentBookings, cancelResidentBooking } from '../services/residentPortalService'
+import { useAuthStore } from '@/shared/stores/authStore'
+import {
+  fetchResidentBookings,
+  cancelResidentBooking,
+  residentAcceptReschedule,
+  residentRejectReschedule,
+  residentCounterReschedule,
+  residentWithdrawReschedule,
+} from '../services/residentPortalService'
+import RescheduleProposalModal from '@/modules/service-provider/components/RescheduleProposalModal'
+import type { WorkingDayId } from '@/shared/constants/timeSlots'
 import type { ResidentBookingRow } from '../services/residentPortalService'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import EmptyState from '@/shared/components/EmptyState'
@@ -44,15 +55,21 @@ const DISPLAY_TIMES: Record<string, string> = {
 }
 
 const STATUS_META: Record<string, { label: string; cls: string; icon: typeof Hourglass }> = {
-  pending:   { label: 'Pending',   cls: 'bg-yellow-50 text-yellow-700 border-yellow-200',  icon: Hourglass },
-  accepted:  { label: 'Confirmed', cls: 'bg-blue-50 text-blue-700 border-blue-200',         icon: CheckCircle },
-  active:    { label: 'Active',    cls: 'bg-success-light text-success-dark border-success/30', icon: CheckCircle },
-  completed: { label: 'Completed', cls: 'bg-gray-100 text-gray-600 border-gray-200',        icon: CheckCircle },
-  cancelled: { label: 'Cancelled', cls: 'bg-danger-light text-danger-dark border-danger/20', icon: Prohibit },
-  rejected:  { label: 'Rejected',  cls: 'bg-danger-light text-danger-dark border-danger/20', icon: XCircle },
+  pending:              { label: 'Pending',           cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: Hourglass },
+  reschedule_requested: { label: 'Reschedule offer',  cls: 'bg-blue-50 text-blue-700 border-blue-200',       icon: Hourglass },
+  accepted:             { label: 'Confirmed',         cls: 'bg-blue-50 text-blue-700 border-blue-200',       icon: CheckCircle },
+  active:               { label: 'Active',            cls: 'bg-success-light text-success-dark border-success/30', icon: CheckCircle },
+  completed:            { label: 'Completed',         cls: 'bg-gray-100 text-gray-600 border-gray-200',      icon: CheckCircle },
+  cancelled:            { label: 'Cancelled',         cls: 'bg-danger-light text-danger-dark border-danger/20', icon: Prohibit },
+  rejected:             { label: 'Rejected',          cls: 'bg-danger-light text-danger-dark border-danger/20', icon: XCircle },
+}
+
+const DAY_LABEL: Record<string, string> = {
+  mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun',
 }
 
 export default function ResidentBookingsPage() {
+  const { t } = useTranslation('resident')
   const { resident, decPendingCount } = useResidentStore()
   const [bookings, setBookings]       = useState<ResidentBookingRow[]>([])
   const [isLoading, setIsLoading]     = useState(true)
@@ -61,6 +78,108 @@ export default function ResidentBookingsPage() {
   const [pendingCancel, setPendingCancel] = useState<ResidentBookingRow | null>(null)
   const [cancelling, setCancelling]   = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<ResidentBookingRow | null>(null)
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null)
+  const [counterBooking, setCounterBooking] = useState<ResidentBookingRow | null>(null)
+  const [counterSubmitting, setCounterSubmitting] = useState(false)
+  const residentUserId = useAuthStore((s) => s.user?.id)
+
+  async function handleAcceptReschedule(b: ResidentBookingRow) {
+    setReschedulingId(b.id)
+    try {
+      await residentAcceptReschedule(b.id)
+      setBookings((prev) => prev.map((x) =>
+        x.id === b.id
+          ? {
+              ...x,
+              status: 'accepted',
+              arrivalTime: x.proposedArrivalTime ?? x.arrivalTime,
+              daysOfWeek: x.proposedDaysOfWeek ?? x.daysOfWeek,
+              proposedArrivalTime: null,
+              proposedDaysOfWeek: null,
+              proposedNote: null,
+            }
+          : x,
+      ))
+      decPendingCount()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setReschedulingId(null)
+    }
+  }
+
+  async function handleRejectReschedule(b: ResidentBookingRow) {
+    setReschedulingId(b.id)
+    try {
+      await residentRejectReschedule(b.id)
+      setBookings((prev) => prev.map((x) =>
+        x.id === b.id
+          ? { ...x, status: 'cancelled', proposedArrivalTime: null, proposedDaysOfWeek: null, proposedNote: null }
+          : x,
+      ))
+      decPendingCount()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setReschedulingId(null)
+    }
+  }
+
+  async function handleWithdrawCounter(b: ResidentBookingRow) {
+    setReschedulingId(b.id)
+    try {
+      await residentWithdrawReschedule(b.id)
+      setBookings((prev) => prev.map((x) =>
+        x.id === b.id
+          ? {
+              ...x,
+              status: 'pending',
+              proposedArrivalTime: null,
+              proposedDaysOfWeek: null,
+              proposedNote: null,
+              proposedByRole: null,
+              proposedBy: null,
+            }
+          : x,
+      ))
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setReschedulingId(null)
+    }
+  }
+
+  async function handleSubmitCounter(input: { arrivalTime: string; daysOfWeek: WorkingDayId[]; note: string | null; price: number }) {
+    if (!counterBooking || !residentUserId) return
+    setCounterSubmitting(true)
+    try {
+      await residentCounterReschedule(
+        counterBooking.id,
+        counterBooking.workerProviderId,
+        residentUserId,
+        input,
+      )
+      setBookings((prev) => prev.map((x) =>
+        x.id === counterBooking.id
+          ? {
+              ...x,
+              status: 'reschedule_requested',
+              proposedArrivalTime: input.arrivalTime,
+              proposedDaysOfWeek: input.daysOfWeek,
+              proposedNote: input.note,
+              proposedPrice: input.price,
+              proposedByRole: 'resident',
+              proposedBy: residentUserId,
+            }
+          : x,
+      ))
+      setCounterBooking(null)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setCounterSubmitting(false)
+    }
+  }
 
   async function load() {
     if (!resident?.id) return
@@ -95,13 +214,13 @@ export default function ResidentBookingsPage() {
   }
 
   const filtered = bookings.filter((b) => {
-    if (tab === 'pending') return b.status === 'pending'
+    if (tab === 'pending') return b.status === 'pending' || b.status === 'reschedule_requested'
     if (tab === 'active')  return b.status === 'accepted' || b.status === 'active'
     return ['completed', 'cancelled', 'rejected'].includes(b.status)
   })
 
   const tabCounts = {
-    pending: bookings.filter((b) => b.status === 'pending').length,
+    pending: bookings.filter((b) => b.status === 'pending' || b.status === 'reschedule_requested').length,
     active:  bookings.filter((b) => b.status === 'accepted' || b.status === 'active').length,
     history: bookings.filter((b) => ['completed', 'cancelled', 'rejected'].includes(b.status)).length,
   }
@@ -220,6 +339,75 @@ export default function ResidentBookingsPage() {
                   </div>
                 </div>
 
+                {/* Reschedule proposal banner */}
+                {b.status === 'reschedule_requested' && b.proposedArrivalTime && (() => {
+                  const isMyProposal = b.proposedByRole === 'resident'
+                  const bg = isMyProposal ? 'bg-purple-50 border-purple-100' : 'bg-blue-50 border-blue-100'
+                  const labelColor = isMyProposal ? 'text-purple-700' : 'text-blue-700'
+                  const iconColor = isMyProposal ? 'text-purple-600' : 'text-blue-600'
+                  return (
+                    <div className={`border rounded-xl p-3 ${bg}`} onClick={(e) => e.stopPropagation()}>
+                      <p className={`font-body text-[10px] font-bold uppercase tracking-wider mb-1.5 ${labelColor}`}>
+                        {isMyProposal ? t('counter.banner_mine') : t('counter.banner_worker')}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs font-body text-gray-700 mb-1.5 flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} weight="duotone" className={iconColor} />
+                          {DISPLAY_TIMES[b.proposedArrivalTime.slice(0, 5)] ?? b.proposedArrivalTime}
+                        </span>
+                        <span>
+                          {(b.proposedDaysOfWeek ?? []).map((d) => DAY_LABEL[d] ?? d).join(', ')}
+                        </span>
+                        {b.proposedPrice !== null && b.proposedPrice !== b.totalPrice && (
+                          <span className="font-body font-semibold text-gray-800">
+                            ₹{b.proposedPrice.toLocaleString('en-IN')}
+                            <span className={`ml-1 text-[10px] font-semibold ${b.proposedPrice > b.totalPrice ? 'text-rose-700' : 'text-emerald-700'}`}>
+                              ({b.proposedPrice > b.totalPrice ? '+' : '−'}₹{Math.abs(b.proposedPrice - b.totalPrice).toLocaleString('en-IN')})
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                      {b.proposedNote && (
+                        <p className="font-body text-xs text-gray-600 italic mb-2">"{b.proposedNote}"</p>
+                      )}
+
+                      {isMyProposal ? (
+                        <button
+                          disabled={reschedulingId === b.id}
+                          onClick={() => handleWithdrawCounter(b)}
+                          className="font-body font-semibold text-xs text-gray-500 hover:text-danger transition-colors disabled:opacity-50 mt-1"
+                        >
+                          {t('counter.withdraw')}
+                        </button>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-1.5 mt-2">
+                          <button
+                            disabled={reschedulingId === b.id}
+                            onClick={() => handleAcceptReschedule(b)}
+                            className="bg-success text-white font-body font-semibold text-xs py-2 rounded-lg hover:bg-success-dark active:scale-[0.98] disabled:opacity-50"
+                          >
+                            {t('counter.accept')}
+                          </button>
+                          <button
+                            disabled={reschedulingId === b.id}
+                            onClick={() => setCounterBooking(b)}
+                            className="bg-white border border-primary text-primary font-body font-semibold text-xs py-2 rounded-lg hover:bg-primary/5 active:scale-[0.98] disabled:opacity-50"
+                          >
+                            {t('counter.counter')}
+                          </button>
+                          <button
+                            disabled={reschedulingId === b.id}
+                            onClick={() => handleRejectReschedule(b)}
+                            className="bg-white border border-danger/30 text-danger font-body font-semibold text-xs py-2 rounded-lg hover:bg-danger-light active:scale-[0.98] disabled:opacity-50"
+                          >
+                            {t('counter.decline')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
                 {/* Price + cancel */}
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                   <div className="flex items-center gap-1">
@@ -258,6 +446,17 @@ export default function ResidentBookingsPage() {
             setSelectedBooking(null)
           }}
           onCancelRequest={(b) => { setSelectedBooking(null); setPendingCancel(b) }}
+        />
+      )}
+
+      {counterBooking && (
+        <RescheduleProposalModal
+          initialArrivalTime={counterBooking.proposedArrivalTime ?? counterBooking.arrivalTime}
+          initialDays={(counterBooking.proposedDaysOfWeek ?? counterBooking.daysOfWeek) as WorkingDayId[]}
+          currentPrice={counterBooking.proposedPrice ?? counterBooking.totalPrice}
+          isSubmitting={counterSubmitting}
+          onClose={() => setCounterBooking(null)}
+          onSubmit={handleSubmitCounter}
         />
       )}
 

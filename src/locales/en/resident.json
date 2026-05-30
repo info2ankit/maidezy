@@ -1,3 +1,10 @@
 {
-  "_note": "Resident namespace — populated in Module 4"
+  "counter": {
+    "banner_worker": "Worker sent new offer",
+    "banner_mine": "Your offer · waiting for worker",
+    "accept": "Accept offer",
+    "decline": "Decline",
+    "counter": "Counter",
+    "withdraw": "Take back"
+  }
 }

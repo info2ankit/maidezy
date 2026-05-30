@@ -1,18 +1,19 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  SquaresFour, UserCircle, ShieldCheck, CalendarCheck, SignOut,
+  SquaresFour, UserCircle, ShieldCheck, CalendarCheck, SignOut, BellRinging,
 } from '@phosphor-icons/react'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { signOut } from '@/shared/services/authService'
-import { APP_NAME } from '@/shared/utils/constants'
+import Logo from '@/shared/components/Logo'
 
 const NAV_ITEMS = [
   { key: 'dashboard', icon: SquaresFour,   path: '/provider/dashboard' },
+  { key: 'requests',  icon: BellRinging,   path: '/provider/requests'  },
+  { key: 'bookings',  icon: CalendarCheck, path: '/provider/bookings'  },
   { key: 'profile',   icon: UserCircle,    path: '/provider/profile'   },
   { key: 'kyc',       icon: ShieldCheck,   path: '/provider/kyc'       },
-  { key: 'bookings',  icon: CalendarCheck, path: '/provider/bookings'  },
 ] as const
 
 export default function ProviderSidebar() {
@@ -30,14 +31,11 @@ export default function ProviderSidebar() {
     <>
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 bg-primary min-h-screen">
-        <div className="px-5 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <span className="text-white font-heading font-bold text-sm">M</span>
-            </div>
-            <span className="font-heading font-bold text-white text-lg">{APP_NAME}</span>
+        <div className="px-5 py-5 border-b border-white/10">
+          <div className="bg-white rounded-xl px-3 py-2 inline-flex">
+            <Logo height={36} />
           </div>
-          <span className="text-white/40 text-xs font-body mt-1 block">{t('nav.provider_label')}</span>
+          <span className="text-white/40 text-xs font-body mt-2 block">{t('nav.provider_label')}</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">

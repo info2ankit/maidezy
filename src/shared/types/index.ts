@@ -21,7 +21,15 @@ export type ServiceType =
   | 'elder_care'
   | 'driver'
 
-export type BookingStatus = 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled'
+export type BookingStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'accepted'
+  | 'reschedule_requested'
+  | 'active'
+  | 'completed'
+  | 'rejected'
+  | 'cancelled'
 
 export type ComplaintStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
 
@@ -116,6 +124,7 @@ export interface KycDocument {
   status: KycStatus
   reviewed_by: string | null
   reviewed_at: string | null
+  rejection_notes: string | null
 }
 
 export interface Resident {
@@ -131,11 +140,17 @@ export interface Booking {
   id: string
   resident_id: string
   provider_id: string
-  service_type: ServiceType
-  start_date: string
+  service_type: ServiceType | null
+  service_type_ids: string[]
+  start_date: string | null
   end_date: string | null
+  arrival_time: string | null
+  days_of_week: string[]
+  pricing_mode: 'monthly' | 'per_visit' | null
+  total_price: number | null
   status: BookingStatus
   amount: number | null
+  otp_code: string | null
   created_at: string
 }
 

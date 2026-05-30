@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BellRinging } from '@phosphor-icons/react'
 import { useBookingStore } from '@/shared/stores/bookingStore'
+import { useAuthStore } from '@/shared/stores/authStore'
 import { useProvider } from '../components/ProviderContext'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import BookingRequestCard from '../components/BookingRequestCard'
@@ -9,6 +10,7 @@ import BookingRequestCard from '../components/BookingRequestCard'
 export default function BookingRequestScreen() {
   const { t } = useTranslation('worker')
   const { provider } = useProvider()
+  const userId = useAuthStore((s) => s.user?.id)
 
   const pendingRequests    = useBookingStore((s) => s.pendingRequests)
   const isLoading          = useBookingStore((s) => s.isLoading)
@@ -16,6 +18,8 @@ export default function BookingRequestScreen() {
   const fetchPendingRequests = useBookingStore((s) => s.fetchPendingRequests)
   const acceptBooking      = useBookingStore((s) => s.acceptBooking)
   const rejectBooking      = useBookingStore((s) => s.rejectBooking)
+  const proposeReschedule  = useBookingStore((s) => s.proposeReschedule)
+  const withdrawReschedule = useBookingStore((s) => s.withdrawReschedule)
 
   useEffect(() => {
     if (provider?.id) fetchPendingRequests(provider.id)
@@ -43,15 +47,30 @@ export default function BookingRequestScreen() {
   }
 
   return (
-    <div className="space-y-4">
-      {pendingRequests.map((booking) => (
-        <BookingRequestCard
-          key={booking.id}
-          booking={booking}
-          onAccept={() => acceptBooking(booking.id, provider?.id ?? '')}
-          onReject={() => rejectBooking(booking.id, provider?.id ?? '')}
-        />
-      ))}
+    <div>
+      <div className="mb-5">
+        <h1 className="font-heading text-xl font-bold text-gray-800">
+          {t('booking.requests_title')}
+        </h1>
+        <p className="font-body text-sm text-gray-400 mt-0.5">
+          {t('booking.requests_subtitle_count', { count: pendingRequests.length })}
+        </p>
+      </div>
+      <div className="space-y-4">
+        {pendingRequests.map((booking) => (
+          <BookingRequestCard
+            key={booking.id}
+            booking={booking}
+            viewerRole="worker"
+            onAccept={() => acceptBooking(booking.id, provider?.id ?? '')}
+            onReject={() => rejectBooking(booking.id, provider?.id ?? '')}
+            onReschedule={(input) =>
+              proposeReschedule(booking.id, provider?.id ?? '', userId ?? '', 'worker', input)
+            }
+            onWithdraw={() => withdrawReschedule(booking.id)}
+          />
+        ))}
+      </div>
     </div>
   )
 }

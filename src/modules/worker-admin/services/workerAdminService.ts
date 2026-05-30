@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { KycStatus } from '@/shared/types'
+import { createNotification } from '@/shared/services/notificationService'
 
 export interface WorkerAdminMeta {
   user_id:     string
@@ -118,6 +119,19 @@ export async function reviewWorkerKyc(
   ])
   if (kycErr) throw new Error(kycErr.message)
   if (spErr)  throw new Error(spErr.message)
+
+  // Notify worker of decision
+  createNotification({
+    userId: workerId,
+    type:   'kyc',
+    title:  decision === 'approved' ? 'KYC approved' : 'KYC rejected',
+    body:   decision === 'approved'
+      ? 'Your KYC has been approved. You can now accept bookings.'
+      : rejectionNotes
+        ? `Your KYC was rejected: ${rejectionNotes}. Tap to re-upload.`
+        : 'Your KYC was rejected. Tap to re-upload.',
+    link:   '/provider/kyc',
+  }).catch((e) => console.error('notify worker of KYC decision failed', e))
 }
 
 export function computeStats(workers: WorkerForAdmin[]): WaDashboardStats {

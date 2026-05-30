@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { WarningCircle, Briefcase, House } from '@phosphor-icons/react'
-import { sendOtp, verifyOtp } from '@/shared/services/authService'
+import { WarningCircle, Briefcase } from '@phosphor-icons/react'
+import { sendOtp, verifyOtp, fetchRwaAdminMembership } from '@/shared/services/authService'
 import { useAuthStore } from '@/shared/stores/authStore'
-import { APP_NAME, APP_TAGLINE, ROUTES } from '@/shared/utils/constants'
-import { cn } from '@/shared/utils/cn'
+import { ROUTES } from '@/shared/utils/constants'
 import type { Role } from '@/shared/types'
 import LanguageToggle from '@/shared/components/LanguageToggle'
+import Logo from '@/shared/components/Logo'
 import MobileStep from './components/MobileStep'
 import OtpStep from './components/OtpStep'
 
@@ -24,7 +24,8 @@ type Step = 'mobile' | 'otp'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const setUser = useAuthStore((s) => s.setUser)
+  const setUser     = useAuthStore((s) => s.setUser)
+  const setRwaAdmin = useAuthStore((s) => s.setRwaAdmin)
 
   const [step, setStep] = useState<Step>('mobile')
   const [mobile, setMobile] = useState('')
@@ -59,6 +60,16 @@ export default function LoginPage() {
     }
 
     setUser(result.user)
+
+    // For residents, check if they also hold RWA-admin rights and surface
+    // that as a capability flag the resident portal can pick up.
+    if (result.user.role === 'resident') {
+      const m = await fetchRwaAdminMembership(result.user.id)
+      setRwaAdmin(m.isRwaAdmin, m.societyIds)
+    } else {
+      setRwaAdmin(false, [])
+    }
+
     navigate(roleRedirect[result.user.role], { replace: true })
   }
 
@@ -75,12 +86,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
 
         {/* Brand header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-card">
-            <span className="text-white font-heading font-bold text-2xl">M</span>
-          </div>
-          <h1 className="font-heading text-2xl font-bold text-primary">{APP_NAME}</h1>
-          <p className="font-body text-gray-400 text-sm mt-1">{APP_TAGLINE}</p>
+        <div className="flex justify-center mb-8">
+          <Logo height={120} />
         </div>
 
         {/* Card */}
@@ -88,21 +95,20 @@ export default function LoginPage() {
           {/* Step header */}
           <div className="mb-6">
             <h2 className="font-heading text-lg font-semibold text-gray-800">
-              {step === 'mobile' ? 'Login / Sign Up' : 'Verify OTP'}
+              {step === 'mobile'
+                ? (signupAs === 'service_provider' ? 'Worker Sign In' : 'Login / Sign Up')
+                : 'Verify OTP'}
             </h2>
             {step === 'mobile' && (
               <p className="text-sm font-body text-gray-400 mt-0.5">
-                Enter your registered mobile number
+                Enter your mobile number
               </p>
             )}
           </div>
 
           {/* Step indicator */}
           <div className="flex items-center gap-2 mb-6">
-            <div className={[
-              'h-1.5 flex-1 rounded-full transition-all duration-300',
-              'bg-primary',
-            ].join(' ')} />
+            <div className="h-1.5 flex-1 rounded-full bg-primary transition-all duration-300" />
             <div className={[
               'h-1.5 flex-1 rounded-full transition-all duration-300',
               step === 'otp' ? 'bg-primary' : 'bg-gray-200',
@@ -114,44 +120,6 @@ export default function LoginPage() {
             <div className="flex items-start gap-2 bg-danger-light border border-danger/20 rounded-xl px-3 py-2.5 mb-4">
               <WarningCircle size={16} className="text-danger mt-0.5 shrink-0" />
               <p className="text-sm font-body text-danger-dark">{error}</p>
-            </div>
-          )}
-
-          {/* Role picker (mobile step only) */}
-          {step === 'mobile' && (
-            <div className="mb-5">
-              <label className="label">I am a</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSignupAs('resident')}
-                  className={cn(
-                    'flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-all duration-150',
-                    signupAs === 'resident'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  )}
-                >
-                  <House size={20} />
-                  <span className="text-sm font-semibold font-body">Resident</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSignupAs('service_provider')}
-                  className={cn(
-                    'flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-all duration-150',
-                    signupAs === 'service_provider'
-                      ? 'border-accent bg-accent/5 text-accent'
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  )}
-                >
-                  <Briefcase size={20} />
-                  <span className="text-sm font-semibold font-body">Service Provider</span>
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 font-body mt-1.5">
-                Only matters for new accounts. Existing users keep their current role.
-              </p>
             </div>
           )}
 
@@ -167,6 +135,23 @@ export default function LoginPage() {
             />
           )}
         </div>
+
+        {/* Footer link: small, discreet entry to worker sign-in (or back to resident) */}
+        {step === 'mobile' && (
+          <button
+            type="button"
+            onClick={() => {
+              setSignupAs((s) => s === 'service_provider' ? 'resident' : 'service_provider')
+              setError(null)
+            }}
+            className="mt-4 w-full text-center text-xs font-body text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center justify-center gap-1.5"
+          >
+            <Briefcase size={12} weight="duotone" />
+            {signupAs === 'service_provider'
+              ? '← Sign in as Resident'
+              : 'Are you a worker? Sign in →'}
+          </button>
+        )}
 
         {/* Back link on OTP step */}
         {step === 'otp' && (

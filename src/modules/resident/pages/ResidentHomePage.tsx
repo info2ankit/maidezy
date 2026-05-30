@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
   Buildings,
   MagnifyingGlass,
   X,
@@ -9,6 +8,7 @@ import {
   Star,
   Funnel,
 } from "@phosphor-icons/react";
+import NotificationsBell from "@/shared/components/NotificationsBell";
 import WorkerFilterSheet, {
   EMPTY_FILTERS,
   countActiveFilters,
@@ -258,9 +258,7 @@ export default function ResidentHomePage() {
               {initial}
             </span>
           </div>
-          <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-            <Bell size={20} weight="regular" className="text-white" />
-          </button>
+          <NotificationsBell variant="light" />
         </div>
 
         <p className="font-body text-white/70 text-sm">{getGreeting()},</p>

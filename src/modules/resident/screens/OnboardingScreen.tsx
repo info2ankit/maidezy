@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import {
-  House,
   ArrowRight,
   MapPin,
   Buildings,
@@ -9,6 +8,7 @@ import {
   SpinnerGap,
   User,
 } from '@phosphor-icons/react'
+import Logo from '@/shared/components/Logo'
 import { fetchSocieties } from '@/shared/services/societyService'
 import { createResidentProfile } from '../services/residentPortalService'
 import { useResidentStore } from '../stores/residentStore'
@@ -194,11 +194,9 @@ export default function OnboardingScreen({ onComplete }: Props) {
         }`}
       >
         <div className="flex-1 bg-gradient-to-b from-primary to-[#0f2340] flex flex-col items-center justify-center px-8 text-center">
-          <div className="w-24 h-24 rounded-3xl bg-white/10 flex items-center justify-center mb-6 backdrop-blur-sm">
-            <House size={64} weight="duotone" className="text-white/80" />
+          <div className="bg-white rounded-3xl p-6 mb-6 shadow-2xl">
+            <Logo height={120} />
           </div>
-          <h1 className="font-heading font-bold text-4xl text-white mb-2">MaidEzy</h1>
-          <p className="font-body text-white/70 text-lg mb-4">Your Society. Simplified.</p>
           <p className="font-body text-white/60 text-sm leading-relaxed max-w-xs">
             Book verified home workers in your society — maids, cooks, drivers and more.
           </p>

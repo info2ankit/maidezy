@@ -36,6 +36,13 @@ export interface ResidentBookingRow {
   pricingMode: string
   totalPrice: number
   status: string
+  proposedArrivalTime: string | null
+  proposedDaysOfWeek: string[] | null
+  proposedNote: string | null
+  proposedPrice: number | null
+  proposedByRole: 'worker' | 'worker_admin' | 'resident' | null
+  proposedBy: string | null
+  workerProviderId: string  // service_providers.id of the worker, needed for counter-proposing
   createdAt: string
 }
 
@@ -133,6 +140,12 @@ export async function fetchWorkersForResident(
   ])
 
   if (usersRes.error) throw new Error(usersRes.error.message)
+
+  // Soft-fail the optional lookups so a missing table or RLS denial doesn't
+  // wipe the whole list — but log loudly so it's not invisible.
+  if (kycRes.error)     console.error('[residentPortal] kyc_documents query failed:',     kycRes.error.message)
+  if (pricingRes.error) console.error('[residentPortal] worker_service_pricing query failed:', pricingRes.error.message)
+  if (availRes.error)   console.error('[residentPortal] worker_availability query failed:',    availRes.error.message)
 
   // Build lookup maps
   const userMap = new Map(
@@ -242,6 +255,15 @@ export async function fetchResidentBookings(residentId: string): Promise<Residen
       pricingMode: row.pricing_mode as string,
       totalPrice: row.total_price as number,
       status: row.status as string,
+      proposedArrivalTime: (row.proposed_arrival_time as string | null) ?? null,
+      proposedDaysOfWeek: (row.proposed_days_of_week as string[] | null) ?? null,
+      proposedNote: (row.proposed_note as string | null) ?? null,
+      proposedPrice: row.proposed_price === null || row.proposed_price === undefined
+        ? null
+        : Number(row.proposed_price),
+      proposedByRole: (row.proposed_by_role as 'worker' | 'worker_admin' | 'resident' | null) ?? null,
+      proposedBy: (row.proposed_by as string | null) ?? null,
+      workerProviderId: row.provider_id as string,
       createdAt: row.created_at as string,
     }
   })
@@ -291,11 +313,66 @@ export async function fetchBookingDetailExtras(
   }
 }
 
+export async function residentAcceptReschedule(bookingId: string): Promise<void> {
+  const { acceptReschedule } = await import('@/shared/services/bookingService')
+  await acceptReschedule(bookingId)
+}
+
+export async function residentRejectReschedule(bookingId: string): Promise<void> {
+  const { rejectReschedule } = await import('@/shared/services/bookingService')
+  await rejectReschedule(bookingId)
+}
+
+export async function residentCounterReschedule(
+  bookingId:     string,
+  providerId:    string,                    // service_providers.id from the booking row
+  residentUserId: string,                   // logged-in resident's users.id
+  input: { arrivalTime: string; daysOfWeek: string[]; note: string | null; price: number },
+): Promise<void> {
+  const { proposeReschedule } = await import('@/shared/services/bookingService')
+  await proposeReschedule(
+    bookingId,
+    providerId,
+    residentUserId,
+    'resident',
+    input as { arrivalTime: string; daysOfWeek: import('@/shared/constants/timeSlots').WorkingDayId[]; note: string | null; price: number },
+  )
+}
+
+export async function residentWithdrawReschedule(bookingId: string): Promise<void> {
+  const { withdrawReschedule } = await import('@/shared/services/bookingService')
+  await withdrawReschedule(bookingId)
+}
+
 export async function cancelResidentBooking(bookingId: string): Promise<void> {
+  // Grab provider_id + resident name for the worker notification before updating.
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('provider_id, resident_id')
+    .eq('id', bookingId)
+    .maybeSingle()
+
   const { error } = await supabase
     .from('bookings')
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
 
   if (error) throw new Error(error.message)
+
+  if (booking?.provider_id) {
+    let residentName: string | undefined
+    if (booking.resident_id) {
+      const { data: r } = await supabase
+        .from('residents')
+        .select('users:user_id(name)')
+        .eq('id', booking.resident_id)
+        .maybeSingle()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      residentName = (r as any)?.users?.name ?? undefined
+    }
+    const { notifyWorkerOfCancellation } = await import('@/shared/services/bookingService')
+    notifyWorkerOfCancellation(booking.provider_id as string, residentName).catch((e) =>
+      console.error('notify worker cancel failed', e),
+    )
+  }
 }

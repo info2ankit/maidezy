@@ -6,6 +6,7 @@ import type { Role } from '@/shared/types'
 import { lazy, Suspense } from 'react'
 
 const LoginPage = lazy(() => import('@/modules/auth/LoginPage'))
+const AdminLoginPage = lazy(() => import('@/modules/auth/AdminLoginPage'))
 const SuperAdminLayout = lazy(() => import('@/modules/super-admin/SuperAdminLayout'))
 const RwaAdminLayout = lazy(() => import('@/modules/rwa-admin/RwaAdminLayout'))
 const WorkerAdminLayout = lazy(() => import('@/modules/worker-admin/WorkerAdminLayout'))
@@ -32,6 +33,34 @@ function RequireRole({ allowed }: { allowed: Role[] }) {
   if (!allowed.includes(role)) {
     return <Navigate to="/login" replace />
   }
+
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <Outlet />
+    </Suspense>
+  )
+}
+
+/** Gate for /rwa-admin: resident with rwa_admins membership OR legacy rwa_admin role. */
+function RequireRwaAdmin() {
+  const { isAuthenticated, role, isRwaAdmin, isLoading } = useAuthStore()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+
+  const allowed = role === 'rwa_admin' || (role === 'resident' && isRwaAdmin)
+  if (!allowed) return <Navigate to="/login" replace />
 
   return (
     <Suspense fallback={
@@ -83,13 +112,28 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    // Admin login is reachable even when another session is active, so an
+    // already-signed-in resident can sign back in as super admin without
+    // having to log out first.
+    path: 'admin/login',
+    element: (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-bg">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }>
+        <AdminLoginPage />
+      </Suspense>
+    ),
+  },
+  {
     element: <RequireRole allowed={['super_admin']} />,
     children: [
       { path: 'super-admin/*', element: <SuperAdminLayout /> },
     ],
   },
   {
-    element: <RequireRole allowed={['rwa_admin']} />,
+    element: <RequireRwaAdmin />,
     children: [
       { path: 'rwa-admin/*', element: <RwaAdminLayout /> },
     ],

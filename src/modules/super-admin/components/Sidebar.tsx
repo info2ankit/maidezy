@@ -4,7 +4,7 @@ import type { Icon } from '@phosphor-icons/react'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { signOut } from '@/shared/services/authService'
-import { APP_NAME } from '@/shared/utils/constants'
+import Logo from '@/shared/components/Logo'
 
 const navItems: { label: string; icon: Icon; path: string }[] = [
   { label: 'Dashboard',     icon: SquaresFour, path: '/super-admin/dashboard'     },
@@ -21,7 +21,7 @@ export default function Sidebar() {
   async function handleLogout() {
     await signOut()
     logout()
-    navigate('/login', { replace: true })
+    navigate('/admin/login', { replace: true })
   }
 
   return (
@@ -29,14 +29,11 @@ export default function Sidebar() {
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 bg-primary min-h-screen">
         {/* Brand */}
-        <div className="px-5 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <span className="text-white font-heading font-bold text-sm">M</span>
-            </div>
-            <span className="font-heading font-bold text-white text-lg">{APP_NAME}</span>
+        <div className="px-5 py-5 border-b border-white/10">
+          <div className="bg-white rounded-xl px-3 py-2 inline-flex">
+            <Logo height={36} />
           </div>
-          <span className="text-white/40 text-xs font-body mt-1 block">Super Admin</span>
+          <span className="text-white/40 text-xs font-body mt-2 block">Super Admin</span>
         </div>
 
         {/* Nav */}
