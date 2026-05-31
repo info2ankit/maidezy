@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, SpinnerGap, Check, CheckCircle, ChatCircleDots, Clock, ArrowRight, CalendarBlank, CalendarDots } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { backdropVariants, SPRING } from '@/shared/utils/motion'
@@ -7,8 +7,10 @@ import { WORKING_DAYS, DISPLAY_TIMES } from '@/shared/constants/timeSlots'
 import type { WorkingDayId } from '@/shared/constants/timeSlots'
 import type { PricingMode } from '@/shared/types/worker.types'
 import { createBookingRequest } from '@/shared/services/bookingService'
+import { fetchSavedAddresses } from '@/shared/services/residentAddressService'
 import { useResidentStore } from '../stores/residentStore'
 import type { ResidentWorker } from '../services/residentPortalService'
+import type { ResidentSavedAddress } from '@/shared/types'
 
 const SERVICE_LABELS: Record<string, string> = {
   maid: 'Maid (Full)',
@@ -98,7 +100,7 @@ const sheetVariants = {
 }
 
 export default function BookingModal({ worker, onClose, onBooked }: Props) {
-  const { resident, incPendingCount } = useResidentStore()
+  const { resident, activeAddress, setActiveAddress, incPendingCount } = useResidentStore()
 
   const [open, setOpen] = useState(true)
   const [step, setStep] = useState(1)
@@ -115,6 +117,17 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
   const [pricingMode, setPricingMode] = useState<PricingMode>('monthly')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+
+  // Saved addresses for inline address change in step 3
+  const [savedAddresses, setSavedAddresses] = useState<ResidentSavedAddress[]>([])
+  const [showAddressList, setShowAddressList] = useState(false)
+
+  useEffect(() => {
+    if (!resident?.id) return
+    fetchSavedAddresses(resident.id)
+      .then((all) => setSavedAddresses(all.filter((a) => !!a.society_id && !!a.flat_no)))
+      .catch(() => {})
+  }, [resident?.id])
 
   function handleClose() { setOpen(false) }
 
@@ -142,13 +155,16 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
     setSubmitError('')
     try {
       await createBookingRequest({
-        residentId: resident.id,
-        workerId: worker.userId,
-        serviceTypeIds: selectedServices,
+        residentId:       resident.id,
+        workerId:         worker.userId,
+        serviceTypeIds:   selectedServices,
         arrivalTime,
-        daysOfWeek: selectedDays,
+        daysOfWeek:       selectedDays,
         pricingMode,
-        totalPrice: computeTotal(),
+        totalPrice:       computeTotal(),
+        bookingSocietyId: activeAddress?.society_id ?? undefined,
+        bookingFlatNo:    activeAddress?.flat_no ?? undefined,
+        bookingBlock:     activeAddress?.block ?? undefined,
       })
       incPendingCount()
       setStep(4)
@@ -444,6 +460,76 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
               <span className="font-body font-semibold text-gray-600 text-sm">Total</span>
               <span className="font-heading font-bold text-primary text-2xl">₹{total}</span>
             </div>
+
+            {/* Booking address — synced with home screen switcher */}
+            {(() => {
+              const addrLabel = activeAddress
+                ? `${activeAddress.block ? activeAddress.block + '-' : ''}${activeAddress.flat_no} · ${activeAddress.society_name}`
+                : `${resident?.block ? resident.block + '-' : ''}${resident?.flat_no ?? '—'} · Home`
+              const isHome = activeAddress === null
+              return (
+                <div className="bg-primary/5 border border-primary/15 rounded-2xl p-3.5 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-body text-[10px] font-bold text-gray-400 uppercase tracking-wider">Booking Address</span>
+                    {savedAddresses.length > 0 && (
+                      <button
+                        onClick={() => setShowAddressList((v) => !v)}
+                        className="font-body text-xs font-semibold text-primary"
+                      >
+                        {showAddressList ? 'Close' : 'Change'}
+                      </button>
+                    )}
+                  </div>
+                  {!showAddressList && (
+                    <p className="font-body text-sm font-semibold text-gray-800 mt-1.5">{addrLabel}</p>
+                  )}
+                  {showAddressList && (
+                    <div className="mt-2 space-y-1.5">
+                      {/* Home option */}
+                      <button
+                        onClick={() => { setActiveAddress(null); setShowAddressList(false) }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                          isHome ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-body text-xs font-semibold truncate ${isHome ? 'text-white' : 'text-gray-800'}`}>
+                            {resident?.block ? `${resident.block}-` : ''}{resident?.flat_no} · Home
+                          </p>
+                          <p className={`font-body text-[10px] mt-0.5 ${isHome ? 'text-white/70' : 'text-gray-400'}`}>
+                            Default
+                          </p>
+                        </div>
+                        {isHome && <Check size={14} weight="bold" className="text-white shrink-0" />}
+                      </button>
+                      {/* Saved addresses */}
+                      {savedAddresses.map((addr) => {
+                        const isSel = activeAddress?.id === addr.id
+                        return (
+                          <button
+                            key={addr.id}
+                            onClick={() => { setActiveAddress(addr); setShowAddressList(false) }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                              isSel ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-body text-xs font-semibold truncate ${isSel ? 'text-white' : 'text-gray-800'}`}>
+                                {addr.block ? `${addr.block}-` : ''}{addr.flat_no} · {addr.society_name}
+                              </p>
+                              <p className={`font-body text-[10px] mt-0.5 ${isSel ? 'text-white/70' : 'text-gray-400'}`}>
+                                {addr.address_type === 'previous_home' ? 'Previous home' : 'Saved'}
+                              </p>
+                            </div>
+                            {isSel && <Check size={14} weight="bold" className="text-white shrink-0" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Summary card */}
             <div className="bg-gray-50 rounded-2xl p-4 mb-5 space-y-2">

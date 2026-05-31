@@ -39,13 +39,16 @@ export async function fetchTodayBookings(providerId: string): Promise<BookingWit
 // ─── New booking request flow ─────────────────────────────────────────────────
 
 export async function createBookingRequest(data: {
-  residentId:     string
-  workerId:       string   // users.id of the worker
-  serviceTypeIds: string[]
-  arrivalTime:    string
-  daysOfWeek:     WorkingDayId[]
-  pricingMode:    PricingMode
-  totalPrice:     number
+  residentId:       string
+  workerId:         string   // users.id of the worker
+  serviceTypeIds:   string[]
+  arrivalTime:      string
+  daysOfWeek:       WorkingDayId[]
+  pricingMode:      PricingMode
+  totalPrice:       number
+  bookingSocietyId?: string  // override when booking from a browsed society
+  bookingFlatNo?:   string
+  bookingBlock?:    string
 }): Promise<BookingRequest> {
   const otpCode = String(Math.floor(100000 + Math.random() * 900000))
 
@@ -60,17 +63,20 @@ export async function createBookingRequest(data: {
   const { data: row, error } = await supabase
     .from('bookings')
     .insert({
-      resident_id:      data.residentId,
-      provider_id:      sp.id,
-      service_type:     data.serviceTypeIds[0] ?? null,
-      service_type_ids: data.serviceTypeIds,
-      start_date:       new Date().toISOString().slice(0, 10),
-      arrival_time:     data.arrivalTime,
-      days_of_week:     data.daysOfWeek,
-      pricing_mode:     data.pricingMode,
-      total_price:      data.totalPrice,
-      status:           'pending',
-      otp_code:         otpCode,
+      resident_id:        data.residentId,
+      provider_id:        sp.id,
+      service_type:       data.serviceTypeIds[0] ?? null,
+      service_type_ids:   data.serviceTypeIds,
+      start_date:         new Date().toISOString().slice(0, 10),
+      arrival_time:       data.arrivalTime,
+      days_of_week:       data.daysOfWeek,
+      pricing_mode:       data.pricingMode,
+      total_price:        data.totalPrice,
+      status:             'pending',
+      otp_code:           otpCode,
+      booking_society_id: data.bookingSocietyId ?? null,
+      booking_flat_no:    data.bookingFlatNo ?? null,
+      booking_block:      data.bookingBlock ?? null,
     })
     .select()
     .single()

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Phone, Buildings, House, PencilSimple, Check, X, SpinnerGap,
-  SignOut, MapPin, Calendar,
+  SignOut, MapPin, Calendar, ArrowsLeftRight, Trash, Plus,
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SPRING, staggerContainer, staggerItem } from '@/shared/utils/motion'
@@ -10,14 +10,16 @@ import { useAuthStore } from '@/shared/stores/authStore'
 import { useResidentStore } from '../stores/residentStore'
 import { signOut } from '@/shared/services/authService'
 import { supabase } from '@/lib/supabase'
-import type { Society } from '@/shared/types'
+import { fetchSavedAddresses, deleteSavedAddress, saveSavedAddress } from '@/shared/services/residentAddressService'
+import type { Society, ResidentSavedAddress } from '@/shared/types'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import ConfirmDialog from '@/shared/components/ConfirmDialog'
+import SocietySwitcherSheet from '@/shared/components/SocietySwitcherSheet'
 
 export default function ResidentProfilePage() {
   const navigate = useNavigate()
   const { user, setUser, logout }       = useAuthStore()
-  const { resident, clearResident }     = useResidentStore()
+  const { resident, setResident, clearResident, activeAddress, setActiveAddress } = useResidentStore()
 
   const [society, setSociety]           = useState<Society | null>(null)
   const [isLoading, setIsLoading]       = useState(true)
@@ -27,6 +29,19 @@ export default function ResidentProfilePage() {
   const [error, setError]               = useState<string | null>(null)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [loggingOut, setLoggingOut]     = useState(false)
+
+  // Change home address flow
+  const [showSocietySwitcher, setShowSocietySwitcher] = useState(false)
+  const [changingSociety, setChangingSociety]         = useState(false)
+
+  // Saved addresses
+  const [savedAddresses, setSavedAddresses]       = useState<ResidentSavedAddress[]>([])
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null)
+  const [confirmDeleteAddr, setConfirmDeleteAddr] = useState<ResidentSavedAddress | null>(null)
+
+  // Add new address flow
+  const [showAddAddressSheet, setShowAddAddressSheet] = useState(false)
+  const [addingAddress, setAddingAddress]             = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -48,6 +63,13 @@ export default function ResidentProfilePage() {
     load()
   }, [resident?.society_id])
 
+  useEffect(() => {
+    if (!resident?.id) return
+    fetchSavedAddresses(resident.id)
+      .then(setSavedAddresses)
+      .catch(() => {})
+  }, [resident?.id])
+
   async function saveName() {
     if (!user?.id || !nameValue.trim()) return
     setSavingName(true)
@@ -63,6 +85,90 @@ export default function ResidentProfilePage() {
       setError((e as Error).message)
     } finally {
       setSavingName(false)
+    }
+  }
+
+  async function handleChangeSociety(newSociety: Society, address?: { flatNo: string; block: string }) {
+    if (!resident) return
+    setChangingSociety(true)
+    setError(null)
+    try {
+      if (resident.flat_no && society) {
+        await saveSavedAddress({
+          residentId:  resident.id,
+          label:       society.name,
+          societyId:   society.id,
+          societyName: society.name,
+          addressType: 'previous_home',
+          city:        society.city,
+          flatNo:      resident.flat_no,
+          block:       resident.block ?? undefined,
+        }).catch(() => {})
+      }
+      const updates: Record<string, string | null> = { society_id: newSociety.id }
+      if (address) {
+        updates.flat_no = address.flatNo
+        updates.block   = address.block || null
+      }
+      const { error: err } = await supabase
+        .from('residents')
+        .update(updates)
+        .eq('id', resident.id)
+      if (err) throw new Error(err.message)
+      setResident({
+        ...resident,
+        society_id: newSociety.id,
+        ...(address ? { flat_no: address.flatNo, block: address.block || null } : {}),
+      })
+      setSociety(newSociety)
+      // If switching home, also reset active address to home
+      setActiveAddress(null)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setChangingSociety(false)
+      setShowSocietySwitcher(false)
+      if (resident?.id) {
+        fetchSavedAddresses(resident.id).then(setSavedAddresses).catch(() => {})
+      }
+    }
+  }
+
+  async function handleDeleteAddress(addr: ResidentSavedAddress) {
+    setDeletingAddressId(addr.id)
+    try {
+      await deleteSavedAddress(addr.id)
+      setSavedAddresses((prev) => prev.filter((a) => a.id !== addr.id))
+      // Clear active address if the deleted one was active
+      if (activeAddress?.id === addr.id) setActiveAddress(null)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setDeletingAddressId(null)
+      setConfirmDeleteAddr(null)
+    }
+  }
+
+  async function handleAddAddress(newSociety: Society, address?: { flatNo: string; block: string }) {
+    if (!resident?.id || !address) { setShowAddAddressSheet(false); return }
+    setAddingAddress(true)
+    try {
+      const saved = await saveSavedAddress({
+        residentId:  resident.id,
+        label:       newSociety.name,
+        societyId:   newSociety.id,
+        societyName: newSociety.name,
+        addressType: 'browse_visit',
+        city:        newSociety.city,
+        flatNo:      address.flatNo,
+        block:       address.block,
+      })
+      setSavedAddresses((prev) => [saved, ...prev])
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setAddingAddress(false)
+      setShowAddAddressSheet(false)
     }
   }
 
@@ -83,12 +189,13 @@ export default function ResidentProfilePage() {
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     : '—'
+  const isHomeActive = activeAddress === null
 
   if (isLoading) return <LoadingSpinner />
 
   return (
     <div>
-      {/* Header gradient with avatar */}
+      {/* Header gradient */}
       <motion.div
         className="bg-gradient-to-b from-primary to-[#2a4f7a] px-5 pt-8 pb-12 rounded-b-3xl"
         initial={{ opacity: 0, y: -20 }}
@@ -193,9 +300,7 @@ export default function ResidentProfilePage() {
 
         {/* Contact card */}
         <motion.div variants={staggerItem} className="card space-y-3">
-          <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Contact
-          </p>
+          <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">Contact</p>
           <InfoRow
             icon={<Phone size={16} weight="duotone" className="text-primary" />}
             label="Mobile"
@@ -203,39 +308,185 @@ export default function ResidentProfilePage() {
           />
         </motion.div>
 
-        {/* Society card */}
+        {/* ── Address Book ───────────────────────────────────────────── */}
         <motion.div variants={staggerItem} className="card space-y-3">
-          <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Society
-          </p>
-          {society ? (
+          <div className="flex items-center justify-between">
+            <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Address Book
+            </p>
+            <motion.button
+              onClick={() => setShowAddAddressSheet(true)}
+              disabled={addingAddress}
+              className="inline-flex items-center gap-1 bg-primary/8 text-primary font-body font-semibold text-xs rounded-full px-3 py-1.5 disabled:opacity-50"
+              whileTap={{ scale: 0.93 }}
+              transition={SPRING}
+            >
+              {addingAddress
+                ? <SpinnerGap size={11} weight="bold" className="animate-spin" />
+                : <Plus size={11} weight="bold" />
+              }
+              Add
+            </motion.button>
+          </div>
+
+          {/* Home address */}
+          <div className={`rounded-2xl overflow-hidden border transition-colors ${
+            isHomeActive ? 'bg-primary/5 border-primary/20' : 'bg-gray-50 border-transparent'
+          }`}>
+            <div className="flex items-start gap-3 px-3.5 py-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                isHomeActive ? 'bg-primary/10' : 'bg-gray-200'
+              }`}>
+                {society
+                  ? <Buildings size={16} weight="duotone" className={isHomeActive ? 'text-primary' : 'text-gray-500'} />
+                  : <House size={16} weight="duotone" className="text-gray-400" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-body text-sm font-semibold text-gray-800 truncate">
+                    {society?.name ?? 'No society linked'}
+                  </p>
+                  <span className="font-body text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full leading-none shrink-0">
+                    Home
+                  </span>
+                  {isHomeActive && (
+                    <span className="font-body text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none shrink-0">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="font-body text-xs text-gray-400 mt-0.5">
+                  {resident?.block ? `${resident.block}-` : ''}{resident?.flat_no ?? '—'}
+                  {society ? ` · ${society.city}` : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-gray-100/80 px-3.5 py-2">
+              <motion.button
+                onClick={() => setShowSocietySwitcher(true)}
+                disabled={changingSociety}
+                className="font-body text-xs font-semibold text-gray-500 flex items-center gap-1 disabled:opacity-50"
+                whileTap={{ scale: 0.92 }}
+                transition={SPRING}
+              >
+                {changingSociety
+                  ? <SpinnerGap size={11} weight="bold" className="animate-spin" />
+                  : <ArrowsLeftRight size={11} weight="bold" />
+                }
+                Change home
+              </motion.button>
+              {!isHomeActive && (
+                <motion.button
+                  onClick={() => setActiveAddress(null)}
+                  className="font-body text-xs font-semibold text-primary flex items-center gap-1"
+                  whileTap={{ scale: 0.92 }}
+                  transition={SPRING}
+                >
+                  <Check size={11} weight="bold" />
+                  Switch to home
+                </motion.button>
+              )}
+            </div>
+          </div>
+
+          {/* Saved addresses */}
+          {savedAddresses.length > 0 && (
             <>
-              <InfoRow
-                icon={<Buildings size={16} weight="duotone" className="text-primary" />}
-                label="Society"
-                value={society.name}
-              />
-              <InfoRow
-                icon={<MapPin size={16} weight="duotone" className="text-primary" />}
-                label="Location"
-                value={`${society.city}, ${society.state}`}
-              />
-              <InfoRow
-                icon={<House size={16} weight="duotone" className="text-primary" />}
-                label="Flat"
-                value={resident?.block ? `${resident.block} · ${resident.flat_no}` : (resident?.flat_no ?? '—')}
-              />
+              <p className="font-body text-[10px] font-bold text-gray-400 uppercase tracking-wider px-0.5">
+                Saved
+              </p>
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {savedAddresses.map((addr) => {
+                    const isActive = activeAddress?.id === addr.id
+                    return (
+                      <motion.div
+                        key={addr.id}
+                        layout
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -16 }}
+                        transition={SPRING}
+                        className={`rounded-2xl overflow-hidden border transition-colors ${
+                          isActive ? 'bg-primary/5 border-primary/20' : 'bg-gray-50 border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3 px-3.5 py-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            isActive ? 'bg-primary/10' : 'bg-gray-200'
+                          }`}>
+                            <MapPin size={16} weight="duotone" className={isActive ? 'text-primary' : 'text-gray-500'} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-body text-sm font-semibold text-gray-800 truncate">
+                                {addr.society_name}
+                              </p>
+                              {isActive && (
+                                <span className="font-body text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none shrink-0">
+                                  Active
+                                </span>
+                              )}
+                              {addr.address_type === 'previous_home' && (
+                                <span className="font-body text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full leading-none shrink-0">
+                                  Prev home
+                                </span>
+                              )}
+                            </div>
+                            <p className="font-body text-xs text-gray-400 mt-0.5">
+                              {addr.flat_no ? `${addr.block ? `${addr.block}-` : ''}${addr.flat_no} · ` : ''}{addr.city}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-gray-100/80 px-3.5 py-2">
+                          {!isActive ? (
+                            <motion.button
+                              onClick={() => setActiveAddress(addr)}
+                              className="font-body text-xs font-semibold text-primary"
+                              whileTap={{ scale: 0.92 }}
+                              transition={SPRING}
+                            >
+                              Use this address
+                            </motion.button>
+                          ) : (
+                            <span className="font-body text-xs text-emerald-600 font-medium flex items-center gap-1">
+                              <Check size={11} weight="bold" />
+                              Currently active
+                            </span>
+                          )}
+                          <motion.button
+                            onClick={() => setConfirmDeleteAddr(addr)}
+                            disabled={deletingAddressId === addr.id}
+                            className="w-7 h-7 rounded-lg bg-danger-light flex items-center justify-center disabled:opacity-40"
+                            whileTap={{ scale: 0.88 }}
+                            transition={SPRING}
+                          >
+                            {deletingAddressId === addr.id
+                              ? <SpinnerGap size={13} weight="bold" className="animate-spin text-danger" />
+                              : <Trash size={13} weight="bold" className="text-danger" />}
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
             </>
-          ) : (
-            <p className="font-body text-sm text-gray-400">No society linked</p>
+          )}
+
+          {savedAddresses.length === 0 && (
+            <p className="font-body text-xs text-gray-400 text-center py-2">
+              No saved addresses yet — tap Add to save one.
+            </p>
           )}
         </motion.div>
 
-        {/* Meta card */}
+        {/* Account card */}
         <motion.div variants={staggerItem} className="card space-y-3">
-          <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Account
-          </p>
+          <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>
           <InfoRow
             icon={<Calendar size={16} weight="duotone" className="text-primary" />}
             label="Member since"
@@ -256,6 +507,7 @@ export default function ResidentProfilePage() {
         </motion.button>
       </motion.div>
 
+      {/* Logout confirm */}
       {confirmLogout && (
         <ConfirmDialog
           title="Logout?"
@@ -267,6 +519,48 @@ export default function ResidentProfilePage() {
           onCancel={() => setConfirmLogout(false)}
         />
       )}
+
+      {/* Delete address confirm */}
+      {confirmDeleteAddr && (
+        <ConfirmDialog
+          title="Remove address?"
+          message={`Remove "${confirmDeleteAddr.society_name}" from your address book?`}
+          confirmLabel="Remove"
+          variant="danger"
+          isLoading={deletingAddressId === confirmDeleteAddr.id}
+          onConfirm={() => handleDeleteAddress(confirmDeleteAddr)}
+          onCancel={() => setConfirmDeleteAddr(null)}
+        />
+      )}
+
+      {/* Change home address */}
+      <AnimatePresence>
+        {showSocietySwitcher && user && (
+          <SocietySwitcherSheet
+            key="society-change"
+            mode="change"
+            userId={user.id}
+            residentId={resident?.id ?? ''}
+            currentCity={society?.city}
+            onSelect={handleChangeSociety}
+            onClose={() => setShowSocietySwitcher(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Add new address */}
+      <AnimatePresence>
+        {showAddAddressSheet && user && (
+          <SocietySwitcherSheet
+            key="society-add"
+            mode="browse"
+            userId={user.id}
+            residentId={resident?.id ?? ''}
+            onSelect={handleAddAddress}
+            onClose={() => setShowAddAddressSheet(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

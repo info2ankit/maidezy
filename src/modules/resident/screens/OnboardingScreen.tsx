@@ -10,6 +10,7 @@ import {
 } from '@phosphor-icons/react'
 import Logo from '@/shared/components/Logo'
 import { fetchSocieties } from '@/shared/services/societyService'
+import { normalizeForSearch } from '@/shared/utils/normalizeSearch'
 import { createResidentProfile } from '../services/residentPortalService'
 import { useResidentStore } from '../stores/residentStore'
 import { useAuthStore } from '@/shared/stores/authStore'
@@ -145,10 +146,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
       !detectedCity ||
       s.city.toLowerCase().includes(detectedCity.toLowerCase()) ||
       detectedCity.toLowerCase().includes(s.city.toLowerCase())
+    const q = normalizeForSearch(searchQuery)
     const matchesSearch =
       !searchQuery ||
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.city.toLowerCase().includes(searchQuery.toLowerCase())
+      normalizeForSearch(s.name).includes(q) ||
+      normalizeForSearch(s.city).includes(q)
     return matchesCity && matchesSearch
   })
 

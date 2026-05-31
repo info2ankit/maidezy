@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, SpinnerGap } from '@phosphor-icons/react'
 import { fetchSocieties } from '@/shared/services/societyService'
+import { normalizeForSearch } from '@/shared/utils/normalizeSearch'
 import { useWorkerProfileStore } from '@/shared/stores/workerProfileStore'
 import OnboardingWizardLayout from '../components/OnboardingWizardLayout'
 import type { Society } from '@/shared/types'
@@ -45,12 +46,12 @@ export default function CityAndSocietyStep() {
 
   const filteredSocieties = useMemo(() => {
     if (!cityName) return []
-    const q = search.trim().toLowerCase()
+    const q = normalizeForSearch(search.trim())
     return societies.filter(
       (s) =>
         s.status === 'active' &&
         s.city === cityName &&
-        (q === '' || s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q)),
+        (q === '' || normalizeForSearch(s.name).includes(q) || normalizeForSearch(s.address).includes(q)),
     )
   }, [societies, cityName, search])
 

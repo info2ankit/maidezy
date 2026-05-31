@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Star, Buildings, CalendarDot, ClockAfternoon, ShieldCheck, ShieldWarning } from '@phosphor-icons/react'
+import { X, Star, Buildings, CalendarDot, ClockAfternoon, ShieldCheck } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SPRING, backdropVariants } from '@/shared/utils/motion'
 import { SERVICE_TYPES } from '@/shared/constants/serviceTypes'
@@ -141,7 +141,15 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ ...SPRING, delay: 0.12 }}
                 >
-                  <h2 className="font-heading font-bold text-gray-900 text-xl leading-tight">{worker.name}</h2>
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="font-heading font-bold text-gray-900 text-xl leading-tight">{worker.name}</h2>
+                    {worker.kycStatus === 'approved' && (
+                      <ShieldCheck size={17} weight="fill" className="text-emerald-500 shrink-0" />
+                    )}
+                  </div>
+                  {worker.kycStatus === 'approved' && (
+                    <p className="font-body text-xs text-emerald-600 font-semibold mt-0.5">KYC Verified</p>
+                  )}
 
                   <div className="flex items-center gap-1 mt-1.5">
                     {hasRating ? (
@@ -172,17 +180,6 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
                     }`}>
                       {worker.isAvailable ? 'Available' : 'Busy'}
                     </span>
-                    {worker.kycStatus === 'approved' ? (
-                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-0.5">
-                        <ShieldCheck size={11} weight="fill" />
-                        <span className="font-body text-[10px] font-semibold">KYC Verified</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2.5 py-0.5">
-                        <ShieldWarning size={11} weight="fill" />
-                        <span className="font-body text-[10px] font-semibold">Not Verified</span>
-                      </span>
-                    )}
                   </div>
                 </motion.div>
               </div>

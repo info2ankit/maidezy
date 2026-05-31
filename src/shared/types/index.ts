@@ -164,6 +164,20 @@ export interface Complaint {
   created_at: string
 }
 
+export interface ResidentSavedAddress {
+  id: string
+  resident_id: string
+  label: string
+  society_id: string | null
+  society_name: string
+  address_type: 'browse_visit' | 'previous_home'
+  city: string
+  pincode: string | null
+  flat_no: string | null
+  block: string | null
+  created_at: string
+}
+
 export interface Notification {
   id: string
   user_id: string
