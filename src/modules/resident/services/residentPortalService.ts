@@ -19,6 +19,7 @@ export interface ResidentWorker {
   gender: string | null
   isAvailable: boolean
   rating: number
+  kycStatus: 'approved' | 'pending' | 'under_review' | 'rejected' | null
   societyIds: string[]
   pricing: WorkerPricing[]
   shifts: WorkerShift[]
@@ -91,14 +92,14 @@ export async function fetchWorkersForResident(
   const [byPrimary, byArray] = await Promise.all([
     supabase
       .from('service_providers')
-      .select('id, user_id, availability, gender, rating, society_ids')
+      .select('id, user_id, availability, gender, rating, society_ids, kyc_status')
       .eq('society_id', societyId)
-      .eq('kyc_status', 'approved'),
+      .neq('kyc_status', 'rejected'),
     supabase
       .from('service_providers')
-      .select('id, user_id, availability, gender, rating, society_ids')
+      .select('id, user_id, availability, gender, rating, society_ids, kyc_status')
       .overlaps('society_ids', [societyId])
-      .eq('kyc_status', 'approved'),
+      .neq('kyc_status', 'rejected'),
   ])
 
   if (byPrimary.error) throw new Error(byPrimary.error.message)
@@ -106,11 +107,11 @@ export async function fetchWorkersForResident(
 
   // Deduplicate by user_id
   const seen = new Set<string>()
-  const allProviders: { id: string; user_id: string; availability: boolean; gender: string | null; rating: number; society_ids: string[] }[] = []
+  const allProviders: { id: string; user_id: string; availability: boolean; gender: string | null; rating: number; society_ids: string[]; kyc_status: string | null }[] = []
   for (const row of [...(byPrimary.data ?? []), ...(byArray.data ?? [])]) {
     if (!seen.has(row.user_id)) {
       seen.add(row.user_id)
-      allProviders.push(row as { id: string; user_id: string; availability: boolean; gender: string | null; rating: number; society_ids: string[] })
+      allProviders.push(row as { id: string; user_id: string; availability: boolean; gender: string | null; rating: number; society_ids: string[]; kyc_status: string | null })
     }
   }
 
@@ -182,6 +183,7 @@ export async function fetchWorkersForResident(
       gender: provider.gender,
       isAvailable: provider.availability,
       rating: provider.rating ?? 0,
+      kycStatus: (provider.kyc_status as ResidentWorker['kycStatus']) ?? null,
       societyIds: provider.society_ids ?? [],
       pricing: pricingMap.get(provider.user_id) ?? [],
       shifts: (avail?.shifts ?? []) as WorkerShift[],

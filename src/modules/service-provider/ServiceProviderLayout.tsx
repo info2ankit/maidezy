@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ProviderProvider, useProvider } from './components/ProviderContext'
 import ProviderSidebar from './components/ProviderSidebar'
 import OnboardingWizard from './OnboardingWizard'
@@ -13,6 +14,34 @@ import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import LanguageToggle from '@/shared/components/LanguageToggle'
 import NotificationsBell from '@/shared/components/NotificationsBell'
 import Logo from '@/shared/components/Logo'
+
+function ProviderAnimatedRoutes() {
+  const location = useLocation()
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        className="will-change-transform"
+      >
+        <Routes location={location}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard"      element={<ProviderDashboardPage />} />
+          <Route path="profile"        element={<ProviderProfilePage />} />
+          <Route path="edit-services"  element={<EditServicesPage />} />
+          <Route path="edit-timings"   element={<EditTimingsPage />} />
+          <Route path="kyc"            element={<KycPage />} />
+          <Route path="requests"       element={<BookingRequestScreen />} />
+          <Route path="bookings"       element={<BookingsPage />} />
+          <Route path="*"              element={<Navigate to="dashboard" replace />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
 
 function ProviderShell() {
   const { provider, isLoading } = useProvider()
@@ -47,17 +76,7 @@ function ProviderShell() {
         </div>
 
         <div className="px-4 py-5 md:px-8 md:py-6">
-          <Routes>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<ProviderDashboardPage />} />
-            <Route path="profile"        element={<ProviderProfilePage />} />
-            <Route path="edit-services"  element={<EditServicesPage />} />
-            <Route path="edit-timings"   element={<EditTimingsPage />} />
-            <Route path="kyc"            element={<KycPage />} />
-            <Route path="requests"  element={<BookingRequestScreen />} />
-            <Route path="bookings"  element={<BookingsPage />} />
-            <Route path="*"         element={<Navigate to="dashboard" replace />} />
-          </Routes>
+          <ProviderAnimatedRoutes />
         </div>
       </main>
     </div>

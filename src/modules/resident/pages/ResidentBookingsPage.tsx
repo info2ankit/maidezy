@@ -4,6 +4,8 @@ import {
   CalendarCheck, Clock, CurrencyInr, XCircle, SpinnerGap,
   User as UserIcon, CheckCircle, Hourglass, Prohibit,
 } from '@phosphor-icons/react'
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { SPRING, SPRING_SNAPPY, staggerContainer, staggerItem } from '@/shared/utils/motion'
 import { useResidentStore } from '../stores/residentStore'
 import { useAuthStore } from '@/shared/stores/authStore'
 import {
@@ -227,67 +229,115 @@ export default function ResidentBookingsPage() {
 
   return (
     <div className="px-4 pt-4">
-      <div className="mb-5">
+      <motion.div
+        className="mb-5"
+        initial={{ opacity: 0, y: -14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+      >
         <h1 className="font-heading text-2xl font-bold text-gray-800">My Bookings</h1>
         <p className="font-body text-sm text-gray-400 mt-0.5">Track all your service requests</p>
-      </div>
+      </motion.div>
 
-      {error && (
-        <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-4 text-sm font-body text-danger-dark">
-          {error}
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={SPRING}
+            className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-4 text-sm font-body text-danger-dark"
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-        {(['pending', 'active', 'history'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={[
-              'px-4 py-2 rounded-full text-sm font-body font-semibold shrink-0 transition-colors capitalize flex items-center gap-1.5',
-              tab === t ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-            ].join(' ')}
-          >
-            {t}
-            {tabCounts[t] > 0 && (
-              <span className={[
-                'text-xs rounded-full px-1.5 py-0.5 font-bold min-w-[20px] text-center',
-                tab === t ? 'bg-white/20' : 'bg-gray-200 text-gray-600',
-              ].join(' ')}>
-                {tabCounts[t]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <motion.div
+        className="flex gap-2 mb-5 overflow-x-auto pb-1"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 30, delay: 0.06 }}
+      >
+        <LayoutGroup id="bookings-tabs">
+          {(['pending', 'active', 'history'] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={[
+                'relative px-4 py-2 rounded-full text-sm font-body font-semibold shrink-0 capitalize flex items-center gap-1.5 transition-colors',
+                tab === t ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              ].join(' ')}
+            >
+              {tab === t && (
+                <motion.span
+                  layoutId="bookings-tab-pill"
+                  className="absolute inset-0 bg-primary rounded-full"
+                  transition={SPRING_SNAPPY}
+                />
+              )}
+              <span className="relative z-10">{t}</span>
+              {tabCounts[t] > 0 && (
+                <span className={[
+                  'relative z-10 text-xs rounded-full px-1.5 py-0.5 font-bold min-w-[20px] text-center',
+                  tab === t ? 'bg-white/20' : 'bg-gray-200 text-gray-600',
+                ].join(' ')}>
+                  {tabCounts[t]}
+                </span>
+              )}
+            </button>
+          ))}
+        </LayoutGroup>
+      </motion.div>
 
       {isLoading ? (
         <LoadingSpinner />
       ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={CalendarCheck}
-          title={
-            tab === 'pending' ? 'No pending requests'
-            : tab === 'active' ? 'No active bookings'
-            : 'No booking history yet'
-          }
-          description={
-            tab === 'pending'
-              ? 'Booking requests waiting for worker response will show up here.'
-              : tab === 'active'
-              ? 'Confirmed and ongoing bookings will appear here.'
-              : 'Completed and cancelled bookings will appear here.'
-          }
-        />
+        <motion.div
+          key={`empty-${tab}`}
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={SPRING}
+        >
+          <EmptyState
+            icon={CalendarCheck}
+            title={
+              tab === 'pending' ? 'No pending requests'
+              : tab === 'active' ? 'No active bookings'
+              : 'No booking history yet'
+            }
+            description={
+              tab === 'pending'
+                ? 'Booking requests waiting for worker response will show up here.'
+                : tab === 'active'
+                ? 'Confirmed and ongoing bookings will appear here.'
+                : 'Completed and cancelled bookings will appear here.'
+            }
+          />
+        </motion.div>
       ) : (
-        <div className="space-y-3">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            className="space-y-3"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
           {filtered.map((b) => {
             const meta = STATUS_META[b.status] ?? STATUS_META.pending
             const StatusIcon = meta.icon
 
             return (
-              <div key={b.id} className="card space-y-3 cursor-pointer active:scale-[0.99] transition-transform" onClick={() => setSelectedBooking(b)}>
+              <motion.div
+                key={b.id}
+                variants={staggerItem}
+                className="card space-y-3 cursor-pointer"
+                whileTap={{ scale: 0.985 }}
+                transition={SPRING}
+                onClick={() => setSelectedBooking(b)}
+              >
                 {/* Worker + status */}
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
@@ -429,10 +479,11 @@ export default function ResidentBookingsPage() {
                     </button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )
           })}
-        </div>
+          </motion.div>
+        </AnimatePresence>
       )}
 
       {selectedBooking && (

@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   SquaresFour, UserCircle, ShieldCheck, CalendarCheck, SignOut, BellRinging,
 } from '@phosphor-icons/react'
+import { motion, LayoutGroup } from 'framer-motion'
+import { SPRING, SPRING_SNAPPY } from '@/shared/utils/motion'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { signOut } from '@/shared/services/authService'
@@ -39,27 +41,41 @@ export default function ProviderSidebar() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV_ITEMS.map(({ key, icon: Icon, path }) => (
-            <NavLink
-              key={path}
-              to={path}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold font-body transition-all duration-150',
-                  isActive
-                    ? 'bg-accent text-white'
-                    : 'text-white/60 hover:bg-white/10 hover:text-white',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon size={20} weight={isActive ? 'fill' : 'regular'} />
-                  {t(`nav.${key}`)}
-                </>
-              )}
-            </NavLink>
-          ))}
+          <LayoutGroup id="provider-sidebar-nav">
+            {NAV_ITEMS.map(({ key, icon: Icon, path }, i) => (
+              <NavLink
+                key={path}
+                to={path}
+                className={({ isActive }) =>
+                  cn(
+                    'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold font-body transition-colors',
+                    isActive ? 'text-white' : 'text-white/60 hover:text-white',
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.span
+                        layoutId="provider-nav-bg"
+                        className="absolute inset-0 bg-accent rounded-xl"
+                        transition={SPRING_SNAPPY}
+                      />
+                    )}
+                    <motion.div
+                      className="relative z-10"
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ ...SPRING, delay: i * 0.05 }}
+                    >
+                      <Icon size={20} weight={isActive ? 'fill' : 'regular'} />
+                    </motion.div>
+                    <span className="relative z-10">{t(`nav.${key}`)}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </LayoutGroup>
         </nav>
 
         <div className="px-3 py-4 border-t border-white/10">
@@ -79,25 +95,39 @@ export default function ProviderSidebar() {
 
       {/* ── Mobile bottom nav ── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-primary z-50 flex border-t border-white/10">
-        {NAV_ITEMS.map(({ key, icon: Icon, path }) => (
-          <NavLink
-            key={path}
-            to={path}
-            className={({ isActive }) =>
-              cn(
-                'flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-body font-semibold transition-colors',
-                isActive ? 'text-accent' : 'text-white/50',
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={22} weight={isActive ? 'fill' : 'regular'} />
-                <span>{t(`nav.${key}`)}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
+        <LayoutGroup id="provider-bottom-nav">
+          {NAV_ITEMS.map(({ key, icon: Icon, path }) => (
+            <NavLink
+              key={path}
+              to={path}
+              className={({ isActive }) =>
+                cn(
+                  'relative flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-body font-semibold transition-colors',
+                  isActive ? 'text-accent' : 'text-white/50',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.span
+                      layoutId="provider-bottom-pill"
+                      className="absolute top-0 inset-x-3 h-[3px] bg-accent rounded-full"
+                      transition={SPRING_SNAPPY}
+                    />
+                  )}
+                  <motion.div
+                    animate={{ scale: isActive ? 1.18 : 1, y: isActive ? -1 : 0 }}
+                    transition={SPRING}
+                  >
+                    <Icon size={22} weight={isActive ? 'fill' : 'regular'} />
+                  </motion.div>
+                  <span>{t(`nav.${key}`)}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </LayoutGroup>
       </nav>
     </>
   )

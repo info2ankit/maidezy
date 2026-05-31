@@ -4,6 +4,8 @@ import {
   Phone, Buildings, House, PencilSimple, Check, X, SpinnerGap,
   SignOut, MapPin, Calendar,
 } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { SPRING, staggerContainer, staggerItem } from '@/shared/utils/motion'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { useResidentStore } from '../stores/residentStore'
 import { signOut } from '@/shared/services/authService'
@@ -87,63 +89,110 @@ export default function ResidentProfilePage() {
   return (
     <div>
       {/* Header gradient with avatar */}
-      <div className="bg-gradient-to-b from-primary to-[#2a4f7a] px-5 pt-8 pb-12 rounded-b-3xl">
+      <motion.div
+        className="bg-gradient-to-b from-primary to-[#2a4f7a] px-5 pt-8 pb-12 rounded-b-3xl"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+      >
         <div className="flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30">
+          <motion.div
+            className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.1 }}
+          >
             <span className="font-heading font-bold text-white text-3xl">{initial}</span>
-          </div>
+          </motion.div>
 
-          {editingName ? (
-            <div className="mt-3 flex items-center gap-2 w-full max-w-xs">
-              <input
-                type="text"
-                value={nameValue}
-                onChange={(e) => setNameValue(e.target.value)}
-                autoFocus
-                className="flex-1 bg-white/20 backdrop-blur border border-white/30 rounded-xl px-3 py-2 text-white placeholder-white/60 font-body text-center outline-none focus:bg-white/25"
-                placeholder="Your name"
-              />
-              <button
-                onClick={saveName}
-                disabled={savingName || !nameValue.trim()}
-                className="w-9 h-9 rounded-xl bg-white text-primary flex items-center justify-center disabled:opacity-50"
+          <AnimatePresence mode="wait">
+            {editingName ? (
+              <motion.div
+                key="editing"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={SPRING}
+                className="mt-3 flex items-center gap-2 w-full max-w-xs"
               >
-                {savingName ? <SpinnerGap size={16} weight="bold" className="animate-spin" /> : <Check size={16} weight="bold" />}
-              </button>
-              <button
-                onClick={() => { setEditingName(false); setNameValue(user?.name ?? '') }}
-                className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center"
+                <input
+                  type="text"
+                  value={nameValue}
+                  onChange={(e) => setNameValue(e.target.value)}
+                  autoFocus
+                  className="flex-1 bg-white/20 backdrop-blur border border-white/30 rounded-xl px-3 py-2 text-white placeholder-white/60 font-body text-center outline-none focus:bg-white/25"
+                  placeholder="Your name"
+                />
+                <button
+                  onClick={saveName}
+                  disabled={savingName || !nameValue.trim()}
+                  className="w-9 h-9 rounded-xl bg-white text-primary flex items-center justify-center disabled:opacity-50"
+                >
+                  {savingName ? <SpinnerGap size={16} weight="bold" className="animate-spin" /> : <Check size={16} weight="bold" />}
+                </button>
+                <button
+                  onClick={() => { setEditingName(false); setNameValue(user?.name ?? '') }}
+                  className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center"
+                >
+                  <X size={16} weight="bold" />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="display"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={SPRING}
+                className="mt-3 flex items-center gap-2"
               >
-                <X size={16} weight="bold" />
-              </button>
-            </div>
-          ) : (
-            <div className="mt-3 flex items-center gap-2">
-              <p className="font-heading font-bold text-white text-xl">
-                {user?.name ?? 'Add your name'}
-              </p>
-              <button
-                onClick={() => setEditingName(true)}
-                className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
-              >
-                <PencilSimple size={12} weight="bold" className="text-white" />
-              </button>
-            </div>
-          )}
+                <p className="font-heading font-bold text-white text-xl">
+                  {user?.name ?? 'Add your name'}
+                </p>
+                <motion.button
+                  onClick={() => setEditingName(true)}
+                  className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+                  whileTap={{ scale: 0.85, rotate: 15 }}
+                  transition={SPRING}
+                >
+                  <PencilSimple size={12} weight="bold" className="text-white" />
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <p className="font-body text-sm text-white/70 mt-1">Resident</p>
+          <motion.p
+            className="font-body text-sm text-white/70 mt-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25 }}
+          >
+            Resident
+          </motion.p>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="px-4 -mt-6 space-y-3">
-        {error && (
-          <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 text-sm font-body text-danger-dark">
-            {error}
-          </div>
-        )}
+      <motion.div
+        className="px-4 -mt-6 space-y-3"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 text-sm font-body text-danger-dark"
+            >
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Contact card */}
-        <div className="card space-y-3">
+        <motion.div variants={staggerItem} className="card space-y-3">
           <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Contact
           </p>
@@ -152,10 +201,10 @@ export default function ResidentProfilePage() {
             label="Mobile"
             value={`+91 ${user?.mobile ?? ''}`}
           />
-        </div>
+        </motion.div>
 
         {/* Society card */}
-        <div className="card space-y-3">
+        <motion.div variants={staggerItem} className="card space-y-3">
           <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Society
           </p>
@@ -180,10 +229,10 @@ export default function ResidentProfilePage() {
           ) : (
             <p className="font-body text-sm text-gray-400">No society linked</p>
           )}
-        </div>
+        </motion.div>
 
         {/* Meta card */}
-        <div className="card space-y-3">
+        <motion.div variants={staggerItem} className="card space-y-3">
           <p className="font-body text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Account
           </p>
@@ -192,17 +241,20 @@ export default function ResidentProfilePage() {
             label="Member since"
             value={memberSince}
           />
-        </div>
+        </motion.div>
 
         {/* Logout */}
-        <button
+        <motion.button
+          variants={staggerItem}
           onClick={() => setConfirmLogout(true)}
           className="w-full mt-4 mb-6 flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-danger/30 bg-danger-light text-danger-dark font-body font-semibold text-sm hover:bg-danger/10 transition-colors"
+          whileTap={{ scale: 0.97 }}
+          transition={SPRING}
         >
           <SignOut size={16} weight="bold" />
           Logout
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {confirmLogout && (
         <ConfirmDialog

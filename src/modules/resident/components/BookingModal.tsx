@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X, SpinnerGap, Check, CheckCircle, ChatCircleDots, Clock, ArrowRight, CalendarBlank, CalendarDots } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { backdropVariants, SPRING } from '@/shared/utils/motion'
 import { SERVICE_TYPES } from '@/shared/constants/serviceTypes'
 import { WORKING_DAYS, DISPLAY_TIMES } from '@/shared/constants/timeSlots'
 import type { WorkingDayId } from '@/shared/constants/timeSlots'
@@ -89,10 +91,16 @@ function StepIndicator({ step }: { step: number }) {
   )
 }
 
+const sheetVariants = {
+  hidden: { y: '100%' },
+  show:   { y: 0,      transition: { type: 'spring' as const, stiffness: 360, damping: 36 } },
+  exit:   { y: '100%', transition: { type: 'spring' as const, stiffness: 400, damping: 40 } },
+}
+
 export default function BookingModal({ worker, onClose, onBooked }: Props) {
   const { resident, incPendingCount } = useResidentStore()
 
-  const [isVisible, setIsVisible] = useState(false)
+  const [open, setOpen] = useState(true)
   const [step, setStep] = useState(1)
 
   // Step 1
@@ -108,16 +116,7 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
-  useEffect(() => {
-    // Animate in
-    const t = setTimeout(() => setIsVisible(true), 10)
-    return () => clearTimeout(t)
-  }, [])
-
-  function handleClose() {
-    setIsVisible(false)
-    setTimeout(onClose, 300)
-  }
+  function handleClose() { setOpen(false) }
 
   function toggleService(id: string) {
     setSelectedServices((prev) =>
@@ -169,32 +168,44 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-        onClick={handleClose}
-      />
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="booking-backdrop"
+            className="fixed inset-0 z-40 bg-black/40"
+            variants={backdropVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            onClick={handleClose}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sheet */}
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto transition-transform duration-300 ${
-          isVisible ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
+      <AnimatePresence onExitComplete={onClose}>
+        {open && (
+          <motion.div
+            key="booking-sheet"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto"
+            variants={sheetVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+          >
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
         </div>
 
         {/* Close button */}
-        <button
+        <motion.button
           onClick={handleClose}
           className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+          whileTap={{ scale: 0.88, rotate: 90 }}
+          transition={SPRING}
         >
           <X size={16} weight="bold" className="text-gray-500" />
-        </button>
+        </motion.button>
 
         {/* Worker header */}
         <div className="flex items-center gap-3 px-5 pt-2 pb-4">
@@ -547,7 +558,7 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
             </div>
 
             <button
-              onClick={() => { setIsVisible(false); setTimeout(onBooked, 300) }}
+              onClick={() => { setOpen(false); setTimeout(onBooked, 260) }}
               className="btn-primary w-full flex items-center justify-center gap-2 mt-2"
             >
               View My Bookings
@@ -564,7 +575,9 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
 
         {/* Safe area bottom padding */}
         <div className="h-4" />
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

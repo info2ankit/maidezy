@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalendarX, MapPin, ToggleLeft, ToggleRight, SpinnerGap, Clock, Star } from '@phosphor-icons/react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { staggerContainer, staggerItem, SPRING } from '@/shared/utils/motion'
 import { fetchTodayBookings, type BookingWithResident } from '@/shared/services/bookingService'
 import { setProviderAvailability } from '@/shared/services/serviceProviderService'
 import { useProvider } from '../components/ProviderContext'
@@ -44,9 +46,13 @@ export default function ProviderDashboardPage() {
   if (!provider) return <LoadingSpinner />
 
   return (
-    <div>
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
       {/* Header card */}
-      <div className="card mb-4 bg-primary text-white">
+      <motion.div variants={staggerItem} className="card mb-4 bg-primary text-white">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-body text-white/60 text-xs">{t('dashboard.today')}</p>
@@ -66,10 +72,12 @@ export default function ProviderDashboardPage() {
               {provider.availability ? t('dashboard.available') : t('dashboard.unavailable')}
             </p>
           </div>
-          <button
+          <motion.button
             onClick={handleToggleAvailability}
             disabled={toggling}
             className="shrink-0 disabled:opacity-50"
+            whileTap={{ scale: 0.88, rotate: -3 }}
+            transition={SPRING}
           >
             {toggling ? (
               <SpinnerGap size={28} weight="bold" className="animate-spin" />
@@ -78,15 +86,17 @@ export default function ProviderDashboardPage() {
             ) : (
               <ToggleLeft size={40} weight="regular" className="text-white/40" />
             )}
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* KYC nudge */}
-      <KycNudgeBanner status={provider.kyc_status} />
+      <motion.div variants={staggerItem}>
+        <KycNudgeBanner status={provider.kyc_status} />
+      </motion.div>
 
       {/* Services & rates */}
-      <div className="card mb-4">
+      <motion.div variants={staggerItem} className="card mb-4">
         <div className="flex items-baseline justify-between mb-2">
           <p className="font-body text-xs text-gray-400">{t('dashboard.services_rates')}</p>
           <Link to="/provider/profile" className="text-xs font-semibold text-accent font-body">{t('dashboard.edit')}</Link>
@@ -121,7 +131,9 @@ export default function ProviderDashboardPage() {
         )}
 
         <div className="mt-3 pt-3 border-t border-gray-100 flex items-start justify-between gap-3">
-          <p className="font-body text-xs text-gray-400 flex items-center gap-1 pt-0.5"><Clock size={12} weight="duotone" />{t('dashboard.slots')}</p>
+          <p className="font-body text-xs text-gray-400 flex items-center gap-1 pt-0.5">
+            <Clock size={12} weight="duotone" />{t('dashboard.slots')}
+          </p>
           <div className="flex flex-wrap gap-1 justify-end">
             {provider.availability_slots.length === 0 ? (
               <span className="text-xs text-gray-400 font-body">{t('dashboard.none_set')}</span>
@@ -140,42 +152,49 @@ export default function ProviderDashboardPage() {
             <span className="font-body text-xs text-gray-400">{t('dashboard.rating')}</span>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Today's bookings */}
-      <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="font-heading font-bold text-gray-800">{t('dashboard.todays_bookings')}</h2>
-        <Link to="/provider/bookings" className="text-xs font-semibold text-accent font-body">{t('dashboard.view_all')}</Link>
-      </div>
-
-      {error && (
-        <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-3 text-sm font-body text-danger-dark">
-          {error}
+      <motion.div variants={staggerItem}>
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="font-heading font-bold text-gray-800">{t('dashboard.todays_bookings')}</h2>
+          <Link to="/provider/bookings" className="text-xs font-semibold text-accent font-body">{t('dashboard.view_all')}</Link>
         </div>
-      )}
 
-      {isLoading ? <LoadingSpinner /> : bookings.length === 0 ? (
-        <EmptyState icon={CalendarX} title={t('dashboard.no_bookings')} description={t('dashboard.day_off')} />
-      ) : (
-        <div className="space-y-3">
-          {bookings.map((b) => (
-            <div key={b.id} className="card">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-body font-semibold text-gray-800">{b.resident.user.name ?? t('profile.resident')}</p>
-                  <p className="font-body text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                    <MapPin size={12} weight="duotone" />
-                    {b.resident.block ? `${b.resident.block}-` : ''}{b.resident.flat_no}
-                  </p>
+        {error && (
+          <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-3 text-sm font-body text-danger-dark">
+            {error}
+          </div>
+        )}
+
+        {isLoading ? <LoadingSpinner /> : bookings.length === 0 ? (
+          <EmptyState icon={CalendarX} title={t('dashboard.no_bookings')} description={t('dashboard.day_off')} />
+        ) : (
+          <motion.div
+            className="space-y-3"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
+            {bookings.map((b) => (
+              <motion.div key={b.id} variants={staggerItem} className="card" whileTap={{ scale: 0.985 }} transition={SPRING}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-body font-semibold text-gray-800">{b.resident.user.name ?? t('profile.resident')}</p>
+                    <p className="font-body text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                      <MapPin size={12} weight="duotone" />
+                      {b.resident.block ? `${b.resident.block}-` : ''}{b.resident.flat_no}
+                    </p>
+                  </div>
+                  <span className={b.status === 'active' ? 'badge-success' : 'badge-pending'}>
+                    {t(`bookings.status.${b.status}`, { defaultValue: b.status })}
+                  </span>
                 </div>
-                <span className={b.status === 'active' ? 'badge-success' : 'badge-pending'}>
-                  {t(`bookings.status.${b.status}`, { defaultValue: b.status })}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </motion.div>
+    </motion.div>
   )
 }

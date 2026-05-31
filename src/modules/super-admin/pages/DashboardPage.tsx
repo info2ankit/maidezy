@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Building2, Users, Briefcase, Home } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { staggerContainer } from '@/shared/utils/motion'
 import StatCard from '../components/StatCard'
 import { fetchSuperAdminStats, type DashboardStats } from '@/shared/services/dashboardService'
 
@@ -17,18 +19,32 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-6">
+      <motion.div
+        className="mb-6"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+      >
         <h1 className="font-heading text-xl font-bold text-gray-800">Dashboard</h1>
         <p className="font-body text-sm text-gray-400 mt-0.5">Platform overview</p>
-      </div>
+      </motion.div>
 
       {error && (
-        <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-6 text-sm font-body text-danger-dark">
+        <motion.div
+          className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 mb-6 text-sm font-body text-danger-dark"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
           {error}
-        </div>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
         <StatCard
           title="Total Societies"
           value={stats?.societies ?? 0}
@@ -61,7 +77,7 @@ export default function DashboardPage() {
           subtitle="Registered residents"
           isLoading={isLoading}
         />
-      </div>
+      </motion.div>
     </div>
   )
 }

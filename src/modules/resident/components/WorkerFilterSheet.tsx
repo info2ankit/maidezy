@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { X, ArrowCounterClockwise } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { backdropVariants, SPRING } from '@/shared/utils/motion'
 import { SERVICE_TYPES } from '@/shared/constants/serviceTypes'
 import {
   START_TIME_SLOTS,
@@ -63,23 +65,21 @@ interface Props {
   onApply: (f: WorkerFilters) => void
 }
 
+const sheetVariants = {
+  hidden: { y: '100%' },
+  show:   { y: 0, transition: { type: 'spring' as const, stiffness: 360, damping: 36 } },
+  exit:   { y: '100%', transition: { type: 'spring' as const, stiffness: 400, damping: 40 } },
+}
+
 export default function WorkerFilterSheet({ initial, onClose, onApply }: Props) {
-  const [isVisible, setIsVisible] = useState(false)
+  const [open, setOpen] = useState(true)
   const [draft, setDraft] = useState<WorkerFilters>(initial)
 
-  useEffect(() => {
-    const t = setTimeout(() => setIsVisible(true), 10)
-    return () => clearTimeout(t)
-  }, [])
-
-  function handleClose() {
-    setIsVisible(false)
-    setTimeout(onClose, 300)
-  }
+  function handleClose() { setOpen(false) }
 
   function handleApply() {
     onApply(draft)
-    handleClose()
+    setOpen(false)
   }
 
   function toggleService(id: string) {
@@ -102,18 +102,30 @@ export default function WorkerFilterSheet({ initial, onClose, onApply }: Props) 
 
   return (
     <>
-      <div
-        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-        onClick={handleClose}
-      />
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="filter-backdrop"
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            variants={backdropVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            onClick={handleClose}
+          />
+        )}
+      </AnimatePresence>
 
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden transition-transform duration-300 ${
-          isVisible ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
+      <AnimatePresence onExitComplete={onClose}>
+        {open && (
+          <motion.div
+            key="filter-sheet"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden"
+            variants={sheetVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+          >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
@@ -130,12 +142,14 @@ export default function WorkerFilterSheet({ initial, onClose, onApply }: Props) 
               <ArrowCounterClockwise size={13} weight="bold" />
               Reset
             </button>
-            <button
+            <motion.button
               onClick={handleClose}
               className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"
+              whileTap={{ scale: 0.88, rotate: 90 }}
+              transition={SPRING}
             >
               <X size={16} weight="bold" className="text-gray-500" />
-            </button>
+            </motion.button>
           </div>
         </div>
 
@@ -308,14 +322,18 @@ export default function WorkerFilterSheet({ initial, onClose, onApply }: Props) 
 
         {/* Footer */}
         <div className="shrink-0 border-t border-gray-100 px-5 py-3">
-          <button
+          <motion.button
             onClick={handleApply}
-            className="w-full bg-accent text-white font-body font-semibold py-3 rounded-2xl text-sm hover:bg-accent-600 active:scale-[0.99] transition-all"
+            className="w-full bg-accent text-white font-body font-semibold py-3 rounded-2xl text-sm hover:bg-accent-600 transition-colors"
+            whileTap={{ scale: 0.97 }}
+            transition={SPRING}
           >
             Apply filters
-          </button>
+          </motion.button>
         </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
