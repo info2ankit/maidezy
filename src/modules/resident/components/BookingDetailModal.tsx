@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   X, User as UserIcon, Clock, CalendarDot, ClockAfternoon,
   CurrencyInr, Hourglass, CheckCircle, Prohibit, XCircle,
@@ -107,7 +108,7 @@ export default function BookingDetailModal({ booking, onClose, onCancelRequest }
   const meta = STATUS_META[booking.status] ?? STATUS_META.pending
   const StatusIcon = meta.icon
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -332,6 +333,7 @@ export default function BookingDetailModal({ booking, onClose, onCancelRequest }
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   )
 }

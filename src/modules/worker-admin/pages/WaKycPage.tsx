@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ClipboardText, Phone, CheckCircle, XCircle,
   SpinnerGap, IdentificationCard, ArrowSquareOut, X,
@@ -23,6 +24,7 @@ const GENDER_LABEL: Record<string, string> = {
 }
 
 export default function WaKycPage() {
+  const { t } = useTranslation('admin')
   const { user } = useAuthStore()
   const [workers, setWorkers]           = useState<WorkerForAdmin[]>([])
   const [isLoading, setIsLoading]       = useState(true)
@@ -69,11 +71,13 @@ export default function WaKycPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-heading text-xl font-bold text-gray-800">KYC Reviews</h1>
+        <h1 className="font-heading text-xl font-bold text-gray-800">{t('worker_admin.kyc.title')}</h1>
         <p className="font-body text-sm text-gray-400 mt-0.5">
           {workers.length === 0
-            ? 'All caught up!'
-            : `${workers.length} worker${workers.length !== 1 ? 's' : ''} awaiting review`}
+            ? t('worker_admin.kyc.all_caught_up')
+            : t(workers.length === 1
+                ? 'worker_admin.kyc.waiting'
+                : 'worker_admin.kyc.waiting_plural', { count: workers.length })}
         </p>
       </div>
 
@@ -86,8 +90,8 @@ export default function WaKycPage() {
       {workers.length === 0 ? (
         <EmptyState
           icon={ClipboardText}
-          title="No pending KYC reviews"
-          description="Workers who upload their Aadhaar and photo will appear here for your review."
+          title={t('worker_admin.kyc.empty_title')}
+          description={t('worker_admin.kyc.empty_sub')}
         />
       ) : (
         <div className="space-y-4">
@@ -124,7 +128,7 @@ export default function WaKycPage() {
                     </span>
                   </div>
 
-                  <span className="badge-pending shrink-0">Under Review</span>
+                  <span className="badge-pending shrink-0">{t('worker_admin.kyc.under_review')}</span>
                 </div>
 
                 {/* Gender + address */}
@@ -155,13 +159,13 @@ export default function WaKycPage() {
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/5 text-primary font-body text-sm font-semibold hover:bg-primary/10 transition-colors"
                     >
                       <IdentificationCard size={16} weight="duotone" />
-                      View Aadhaar Card
+                      {t('worker_admin.kyc.view_aadhaar')}
                       <ArrowSquareOut size={13} weight="bold" className="opacity-60" />
                     </a>
                   ) : (
                     <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-200 text-gray-400 font-body text-sm">
                       <IdentificationCard size={16} weight="duotone" />
-                      Aadhaar not uploaded
+                      {t('worker_admin.kyc.no_aadhaar')}
                     </div>
                   )}
                 </div>
@@ -176,7 +180,7 @@ export default function WaKycPage() {
                     {isProcessing && reviewing?.action === 'rejected'
                       ? <SpinnerGap size={15} weight="bold" className="animate-spin" />
                       : <XCircle size={16} weight="fill" />}
-                    Reject
+                    {t('worker_admin.kyc.reject')}
                   </button>
                   <button
                     onClick={() => setPendingReview({ worker, action: 'approved' })}
@@ -186,7 +190,7 @@ export default function WaKycPage() {
                     {isProcessing && reviewing?.action === 'approved'
                       ? <SpinnerGap size={15} weight="bold" className="animate-spin" />
                       : <CheckCircle size={16} weight="fill" />}
-                    Approve
+                    {t('worker_admin.kyc.approve')}
                   </button>
                 </div>
               </div>
@@ -198,13 +202,12 @@ export default function WaKycPage() {
       {/* Confirm review dialog */}
       {pendingReview && (
         <ConfirmDialog
-          title={pendingReview.action === 'approved' ? 'Approve KYC?' : 'Reject KYC?'}
-          message={
-            pendingReview.action === 'approved'
-              ? `Approve KYC for ${pendingReview.worker.name ?? pendingReview.worker.mobile}? This will allow them to accept bookings.`
-              : `Add a note explaining why ${pendingReview.worker.name ?? pendingReview.worker.mobile}'s KYC is being rejected. The worker will see this.`
-          }
-          confirmLabel={pendingReview.action === 'approved' ? 'Yes, Approve' : 'Yes, Reject'}
+          title={t(pendingReview.action === 'approved' ? 'worker_admin.kyc.approve_title' : 'worker_admin.kyc.reject_title')}
+          message={t(
+            pendingReview.action === 'approved' ? 'worker_admin.kyc.approve_body' : 'worker_admin.kyc.reject_body',
+            { name: pendingReview.worker.name ?? pendingReview.worker.mobile },
+          )}
+          confirmLabel={t(pendingReview.action === 'approved' ? 'worker_admin.kyc.approve_btn' : 'worker_admin.kyc.reject_btn')}
           variant={pendingReview.action === 'approved' ? 'success' : 'danger'}
           isLoading={reviewing !== null}
           disableConfirm={pendingReview.action === 'rejected' && rejectionNotes.replace(/<[^>]*>/g, '').trim() === ''}
@@ -213,7 +216,7 @@ export default function WaKycPage() {
         >
           {pendingReview.action === 'rejected' && (
             <RichTextEditor
-              placeholder="e.g. Aadhaar photo is blurry. Please re-upload a clear scan."
+              placeholder={t('worker_admin.kyc.reject_placeholder')}
               onChange={setRejectionNotes}
               minHeight={110}
             />

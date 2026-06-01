@@ -328,155 +328,193 @@ export default function ResidentBookingsPage() {
           {filtered.map((b) => {
             const meta = STATUS_META[b.status] ?? STATUS_META.pending
             const StatusIcon = meta.icon
+            const isReschedule = b.status === 'reschedule_requested'
+            const isMyProposal = isReschedule && b.proposedByRole === 'resident'
+
+            // Left-border accent + hint text per status
+            const accentCls = {
+              pending:              'border-l-amber-400',
+              reschedule_requested: 'border-l-blue-400',
+              accepted:             'border-l-primary',
+              active:               'border-l-emerald-500',
+              completed:            'border-l-gray-300',
+              cancelled:            'border-l-red-300',
+              rejected:             'border-l-red-300',
+            }[b.status] ?? 'border-l-gray-200'
+
+            const hintText = {
+              pending:              'Waiting for worker response',
+              reschedule_requested: isMyProposal ? 'You sent a counter-offer' : 'Worker proposed new schedule',
+              accepted:             'Booking confirmed — worker is set',
+              active:               'Service is currently ongoing',
+              completed:            'Service completed',
+              cancelled:            'This booking was cancelled',
+              rejected:             'Worker was unable to accept',
+            }[b.status] ?? ''
 
             return (
               <motion.div
                 key={b.id}
                 variants={staggerItem}
-                className="card space-y-3 cursor-pointer"
-                whileTap={{ scale: 0.985 }}
+                className={`bg-white rounded-2xl shadow-sm border border-gray-100 border-l-4 ${accentCls} overflow-hidden cursor-pointer active:scale-[0.985] transition-transform`}
+                whileTap={{ scale: 0.984 }}
                 transition={SPRING}
                 onClick={() => setSelectedBooking(b)}
               >
-                {/* Worker + status */}
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                    {b.workerPhoto ? (
-                      <img src={b.workerPhoto} alt={b.workerName} className="w-full h-full object-cover" />
-                    ) : (
-                      <UserIcon size={20} weight="duotone" className="text-primary" />
-                    )}
+                {/* Main content */}
+                <div className="px-4 pt-4 pb-3 space-y-3">
+
+                  {/* Worker row */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                      {b.workerPhoto ? (
+                        <img src={b.workerPhoto} alt={b.workerName} className="w-full h-full object-cover" />
+                      ) : (
+                        <UserIcon size={22} weight="duotone" className="text-primary" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-heading font-bold text-gray-900 text-base leading-tight truncate">
+                        {b.workerName || 'Worker'}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {b.serviceTypeIds.map((s) => (
+                          <span key={s} className={`text-[11px] font-body font-semibold px-2 py-0.5 rounded-full ${SERVICE_PILL_COLORS[s] ?? 'bg-gray-100 text-gray-600'}`}>
+                            {SERVICE_LABELS[s] ?? s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-body font-semibold border ${meta.cls}`}>
+                      <StatusIcon size={10} weight="fill" />
+                      {meta.label}
+                    </span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-body font-semibold text-gray-800 truncate">
-                      {b.workerName || 'Worker'}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {b.serviceTypeIds.map((s) => (
-                        <span key={s} className={`text-xs font-body font-medium px-2 py-0.5 rounded-full ${SERVICE_PILL_COLORS[s] ?? 'bg-gray-100 text-gray-600'}`}>
-                          {SERVICE_LABELS[s] ?? s}
-                        </span>
-                      ))}
+
+                  {/* Schedule strip */}
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Clock size={13} weight="duotone" className="text-primary/60" />
+                      <span className="font-body text-xs font-semibold text-gray-700">
+                        {DISPLAY_TIMES[b.arrivalTime?.slice(0, 5)] ?? b.arrivalTime}
+                      </span>
+                    </div>
+                    <div className="w-px h-3 bg-gray-200" />
+                    <div className="flex gap-1">
+                      {(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const).map((d) => {
+                        const active = b.daysOfWeek.includes(d)
+                        return (
+                          <span
+                            key={d}
+                            className={[
+                              'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors',
+                              active ? 'bg-primary text-white shadow-sm' : 'bg-white text-gray-300 border border-gray-100',
+                            ].join(' ')}
+                          >
+                            {DAY_SHORT[d]}
+                          </span>
+                        )
+                      })}
                     </div>
                   </div>
-                  <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-body font-semibold border ${meta.cls}`}>
-                    <StatusIcon size={11} weight="fill" />
-                    {meta.label}
-                  </span>
-                </div>
 
-                {/* Schedule */}
-                <div className="flex items-center gap-4 text-xs font-body text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Clock size={14} weight="duotone" className="text-gray-400" />
-                    {DISPLAY_TIMES[b.arrivalTime?.slice(0, 5)] ?? b.arrivalTime}
-                  </span>
-                  <div className="flex gap-1">
-                    {(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const).map((d) => {
-                      const active = b.daysOfWeek.includes(d)
-                      return (
-                        <span
-                          key={d}
-                          className={[
-                            'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold',
-                            active ? 'bg-primary text-white' : 'bg-gray-100 text-gray-300',
-                          ].join(' ')}
-                        >
-                          {DAY_SHORT[d]}
-                        </span>
-                      )
-                    })}
-                  </div>
-                </div>
+                  {/* Status hint */}
+                  {hintText && (
+                    <p className="font-body text-xs text-gray-400 leading-snug">{hintText}</p>
+                  )}
 
-                {/* Reschedule proposal banner */}
-                {b.status === 'reschedule_requested' && b.proposedArrivalTime && (() => {
-                  const isMyProposal = b.proposedByRole === 'resident'
-                  const bg = isMyProposal ? 'bg-purple-50 border-purple-100' : 'bg-blue-50 border-blue-100'
-                  const labelColor = isMyProposal ? 'text-purple-700' : 'text-blue-700'
-                  const iconColor = isMyProposal ? 'text-purple-600' : 'text-blue-600'
-                  return (
-                    <div className={`border rounded-xl p-3 ${bg}`} onClick={(e) => e.stopPropagation()}>
-                      <p className={`font-body text-[10px] font-bold uppercase tracking-wider mb-1.5 ${labelColor}`}>
-                        {isMyProposal ? t('counter.banner_mine') : t('counter.banner_worker')}
+                  {/* Reschedule proposal inline — only the action buttons, details open on tap */}
+                  {isReschedule && b.proposedArrivalTime && !isMyProposal && (
+                    <div
+                      className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="font-body text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-2">
+                        {t('counter.banner_worker')}
                       </p>
-                      <div className="flex items-center gap-3 text-xs font-body text-gray-700 mb-1.5 flex-wrap">
+                      <div className="flex items-center gap-2 text-xs font-body text-gray-700 mb-2.5 flex-wrap">
                         <span className="flex items-center gap-1">
-                          <Clock size={12} weight="duotone" className={iconColor} />
+                          <Clock size={11} weight="duotone" className="text-blue-500" />
                           {DISPLAY_TIMES[b.proposedArrivalTime.slice(0, 5)] ?? b.proposedArrivalTime}
                         </span>
-                        <span>
-                          {(b.proposedDaysOfWeek ?? []).map((d) => DAY_LABEL[d] ?? d).join(', ')}
-                        </span>
+                        <span className="text-gray-400">·</span>
+                        <span>{(b.proposedDaysOfWeek ?? []).map((d) => DAY_LABEL[d] ?? d).join(', ')}</span>
                         {b.proposedPrice !== null && b.proposedPrice !== b.totalPrice && (
-                          <span className="font-body font-semibold text-gray-800">
-                            ₹{b.proposedPrice.toLocaleString('en-IN')}
-                            <span className={`ml-1 text-[10px] font-semibold ${b.proposedPrice > b.totalPrice ? 'text-rose-700' : 'text-emerald-700'}`}>
-                              ({b.proposedPrice > b.totalPrice ? '+' : '−'}₹{Math.abs(b.proposedPrice - b.totalPrice).toLocaleString('en-IN')})
+                          <>
+                            <span className="text-gray-400">·</span>
+                            <span className="font-semibold">
+                              ₹{b.proposedPrice.toLocaleString('en-IN')}
+                              <span className={`ml-1 text-[10px] ${b.proposedPrice > b.totalPrice ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                ({b.proposedPrice > b.totalPrice ? '+' : '−'}₹{Math.abs(b.proposedPrice - b.totalPrice).toLocaleString('en-IN')})
+                              </span>
                             </span>
-                          </span>
+                          </>
                         )}
                       </div>
                       {b.proposedNote && (
-                        <p className="font-body text-xs text-gray-600 italic mb-2">"{b.proposedNote}"</p>
+                        <p className="font-body text-xs text-gray-500 italic mb-2">"{b.proposedNote}"</p>
                       )}
-
-                      {isMyProposal ? (
+                      <div className="grid grid-cols-3 gap-1.5">
                         <button
                           disabled={reschedulingId === b.id}
-                          onClick={() => handleWithdrawCounter(b)}
-                          className="font-body font-semibold text-xs text-gray-500 hover:text-danger transition-colors disabled:opacity-50 mt-1"
+                          onClick={() => handleAcceptReschedule(b)}
+                          className="bg-success text-white font-body font-semibold text-xs py-2 rounded-lg active:scale-[0.97] disabled:opacity-50 transition-transform"
                         >
-                          {t('counter.withdraw')}
+                          {t('counter.accept')}
                         </button>
-                      ) : (
-                        <div className="grid grid-cols-3 gap-1.5 mt-2">
-                          <button
-                            disabled={reschedulingId === b.id}
-                            onClick={() => handleAcceptReschedule(b)}
-                            className="bg-success text-white font-body font-semibold text-xs py-2 rounded-lg hover:bg-success-dark active:scale-[0.98] disabled:opacity-50"
-                          >
-                            {t('counter.accept')}
-                          </button>
-                          <button
-                            disabled={reschedulingId === b.id}
-                            onClick={() => setCounterBooking(b)}
-                            className="bg-white border border-primary text-primary font-body font-semibold text-xs py-2 rounded-lg hover:bg-primary/5 active:scale-[0.98] disabled:opacity-50"
-                          >
-                            {t('counter.counter')}
-                          </button>
-                          <button
-                            disabled={reschedulingId === b.id}
-                            onClick={() => handleRejectReschedule(b)}
-                            className="bg-white border border-danger/30 text-danger font-body font-semibold text-xs py-2 rounded-lg hover:bg-danger-light active:scale-[0.98] disabled:opacity-50"
-                          >
-                            {t('counter.decline')}
-                          </button>
-                        </div>
-                      )}
+                        <button
+                          disabled={reschedulingId === b.id}
+                          onClick={() => setCounterBooking(b)}
+                          className="bg-white border border-primary/30 text-primary font-body font-semibold text-xs py-2 rounded-lg active:scale-[0.97] disabled:opacity-50 transition-transform"
+                        >
+                          {t('counter.counter')}
+                        </button>
+                        <button
+                          disabled={reschedulingId === b.id}
+                          onClick={() => handleRejectReschedule(b)}
+                          className="bg-white border border-danger/20 text-danger font-body font-semibold text-xs py-2 rounded-lg active:scale-[0.97] disabled:opacity-50 transition-transform"
+                        >
+                          {t('counter.decline')}
+                        </button>
+                      </div>
                     </div>
-                  )
-                })()}
+                  )}
 
-                {/* Price + cancel */}
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                  <div className="flex items-center gap-1">
-                    <CurrencyInr size={14} weight="bold" className="text-primary" />
-                    <span className="font-heading text-base font-bold text-primary">
-                      {b.totalPrice}
+                  {isReschedule && isMyProposal && (
+                    <div className="flex items-center justify-between bg-purple-50 border border-purple-100 rounded-xl px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <p className="font-body text-xs text-purple-700 font-semibold">{t('counter.banner_mine')}</p>
+                      <button
+                        disabled={reschedulingId === b.id}
+                        onClick={() => handleWithdrawCounter(b)}
+                        className="font-body font-semibold text-xs text-gray-500 hover:text-danger transition-colors disabled:opacity-50"
+                      >
+                        {t('counter.withdraw')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-50/60 border-t border-gray-100">
+                  <div className="flex items-baseline gap-0.5">
+                    <CurrencyInr size={14} weight="bold" className="text-primary self-center" />
+                    <span className="font-heading text-lg font-bold text-primary leading-none">
+                      {b.totalPrice.toLocaleString('en-IN')}
                     </span>
                     <span className="font-body text-xs text-gray-400 ml-0.5">
-                      / {b.pricingMode === 'monthly' ? 'mo' : 'visit'}
+                      /{b.pricingMode === 'monthly' ? 'mo' : 'visit'}
                     </span>
                   </div>
-                  {b.status === 'pending' && (
+                  {b.status === 'pending' ? (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPendingCancel(b) }}
-                      className="text-xs font-body font-semibold text-danger hover:text-danger-dark transition-colors flex items-center gap-1"
+                      className="text-xs font-body font-semibold text-danger flex items-center gap-1 py-1.5 px-3 rounded-lg bg-danger-light border border-danger/15 active:scale-[0.97] transition-transform"
                     >
-                      <XCircle size={13} weight="fill" />
+                      <XCircle size={12} weight="fill" />
                       Cancel
                     </button>
+                  ) : (
+                    <span className="font-body text-xs text-gray-400">Tap for details</span>
                   )}
                 </div>
               </motion.div>

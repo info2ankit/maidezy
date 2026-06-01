@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Users, Phone, GenderIntersex, MapPin, MagnifyingGlass, FunnelSimple,
   Buildings, MinusCircle, ArrowCounterClockwise, Eye, UserCircle, ShieldWarning,
@@ -22,12 +23,12 @@ import { SPRING, staggerContainer, staggerItem } from '@/shared/utils/motion'
 
 type Tab = 'active' | 'removed'
 
-const KYC_FILTERS: { label: string; value: KycStatus | 'all' }[] = [
-  { label: 'All',      value: 'all'       },
-  { label: 'Pending',  value: 'pending'   },
-  { label: 'Review',   value: 'submitted' },
-  { label: 'Approved', value: 'approved'  },
-  { label: 'Rejected', value: 'rejected'  },
+const KYC_FILTERS: { labelKey: string; value: KycStatus | 'all' }[] = [
+  { labelKey: 'worker_admin.workers.kyc_all',      value: 'all'       },
+  { labelKey: 'worker_admin.workers.kyc_pending',  value: 'pending'   },
+  { labelKey: 'worker_admin.workers.kyc_review',   value: 'submitted' },
+  { labelKey: 'worker_admin.workers.kyc_approved', value: 'approved'  },
+  { labelKey: 'worker_admin.workers.kyc_rejected', value: 'rejected'  },
 ]
 
 const GENDER_LABEL: Record<string, string> = {
@@ -44,6 +45,7 @@ interface ActionTarget {
 }
 
 export default function WaWorkersPage() {
+  const { t } = useTranslation('admin')
   const { user } = useAuthStore()
 
   const [adminSocieties, setAdminSocieties] = useState<Society[]>([])
@@ -192,9 +194,10 @@ export default function WaWorkersPage() {
     setActionTarget(null)
     setDetailWorker((curr) => (curr && curr.user_id === updated.user_id ? updated : curr))
     setToast(
-      mode === 'remove'
-        ? `${worker.name ?? 'Worker'} removed from ${society.name}`
-        : `${worker.name ?? 'Worker'} restored to ${society.name}`,
+      t(mode === 'remove'
+        ? 'worker_admin.workers.toast_removed'
+        : 'worker_admin.workers.toast_restored',
+      { name: worker.name ?? 'Worker', society: society.name }),
     )
     window.setTimeout(() => setToast(null), 3200)
   }
@@ -207,13 +210,10 @@ export default function WaWorkersPage() {
     <div>
       {/* Header */}
       <div className="mb-5">
-        <h1 className="font-heading text-xl font-bold text-gray-800">Workers</h1>
+        <h1 className="font-heading text-xl font-bold text-gray-800">{t('worker_admin.workers.title')}</h1>
         <p className="font-body text-sm text-gray-400 mt-0.5">
-          Manage workers across your{' '}
-          <span className="font-semibold text-gray-600">
-            {adminSocieties.length} societ{adminSocieties.length === 1 ? 'y' : 'ies'}
-          </span>{' '}
-          · {counts.active} active · {counts.removed} removed
+          {t(adminSocieties.length === 1 ? 'worker_admin.workers.subtitle_one' : 'worker_admin.workers.subtitle',
+            { count: adminSocieties.length, active: counts.active, removed: counts.removed })}
         </p>
       </div>
 
@@ -230,15 +230,15 @@ export default function WaWorkersPage() {
       {adminSocieties.length === 0 ? (
         <EmptyState
           icon={ShieldWarning}
-          title="No societies assigned to you"
-          description="Ask your Super Admin to assign at least one society before you can manage workers."
+          title={t('worker_admin.workers.no_society_title')}
+          description={t('worker_admin.workers.no_society_sub')}
         />
       ) : (
         <>
           {/* Tabs */}
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-            <TabPill label="Active"  count={counts.active}  active={tab === 'active'}  onClick={() => setTab('active')} />
-            <TabPill label="Removed" count={counts.removed} active={tab === 'removed'} onClick={() => setTab('removed')} />
+            <TabPill label={t('worker_admin.common.active')}  count={counts.active}  active={tab === 'active'}  onClick={() => setTab('active')} />
+            <TabPill label={t('worker_admin.common.removed')} count={counts.removed} active={tab === 'removed'} onClick={() => setTab('removed')} />
           </div>
 
           {/* Society chips (only if admin has multiple) */}
@@ -246,7 +246,7 @@ export default function WaWorkersPage() {
             <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-0.5">
               <Buildings size={13} weight="duotone" className="text-gray-400 shrink-0" />
               <FilterChip
-                label="All"
+                label={t('worker_admin.common.all')}
                 active={societyFilter === 'all'}
                 onClick={() => setSocietyFilter('all')}
               />
@@ -269,7 +269,7 @@ export default function WaWorkersPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or mobile…"
+                placeholder={t('worker_admin.workers.search_placeholder')}
                 className="input-field pl-9 w-full"
               />
             </div>
@@ -279,7 +279,7 @@ export default function WaWorkersPage() {
               {KYC_FILTERS.map((f) => (
                 <FilterChip
                   key={f.value}
-                  label={f.label}
+                  label={t(f.labelKey)}
                   active={kycFilter === f.value}
                   onClick={() => setKycFilter(f.value)}
                 />
@@ -293,17 +293,17 @@ export default function WaWorkersPage() {
               icon={tab === 'active' ? Users : MinusCircle}
               title={
                 tab === 'active'
-                  ? counts.active === 0 ? 'No active workers' : 'No results'
-                  : counts.removed === 0 ? 'No removed workers' : 'No results'
+                  ? t(counts.active === 0 ? 'worker_admin.workers.no_active_title' : 'worker_admin.workers.no_results')
+                  : t(counts.removed === 0 ? 'worker_admin.workers.no_removed_title' : 'worker_admin.workers.no_results')
               }
               description={
                 tab === 'active'
-                  ? counts.active === 0
-                    ? 'Workers from your societies will appear here once they register.'
-                    : 'Try adjusting the search or filter.'
-                  : counts.removed === 0
-                    ? 'Workers you remove will appear here. You can restore them anytime.'
-                    : 'Try adjusting the search or filter.'
+                  ? t(counts.active === 0
+                      ? 'worker_admin.workers.no_active_sub'
+                      : 'worker_admin.workers.no_results_sub')
+                  : t(counts.removed === 0
+                      ? 'worker_admin.workers.no_removed_sub'
+                      : 'worker_admin.workers.no_results_sub')
               }
             />
           ) : (
@@ -447,6 +447,7 @@ interface WorkerCardProps {
 function WorkerCard({
   tab, worker, activeInScope, removedInScope, societyMap, onView, onRemove, onRestore,
 }: WorkerCardProps) {
+  const { t } = useTranslation('admin')
   const otherActiveCount = worker.society_ids.filter((id) => !societyMap.has(id)).length
 
   return (
@@ -505,7 +506,9 @@ function WorkerCard({
             })}
         {otherActiveCount > 0 && (
           <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-[11px] font-body font-medium px-2 py-0.5 rounded-full">
-            +{otherActiveCount} other {otherActiveCount === 1 ? 'society' : 'societies'}
+            {t(otherActiveCount === 1
+              ? 'worker_admin.workers.other_society'
+              : 'worker_admin.workers.other_societies', { count: otherActiveCount })}
           </span>
         )}
       </div>
@@ -526,7 +529,7 @@ function WorkerCard({
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 font-body text-xs font-semibold transition-colors"
         >
           <Eye size={13} weight="duotone" />
-          View detail
+          {t('worker_admin.common.view_detail')}
         </button>
         {tab === 'active' ? (
           <button
@@ -535,7 +538,9 @@ function WorkerCard({
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-danger-light text-danger-dark hover:bg-danger/10 font-body text-xs font-semibold transition-colors"
           >
             <MinusCircle size={13} weight="duotone" />
-            {activeInScope.length > 1 ? 'Remove from…' : 'Remove'}
+            {t(activeInScope.length > 1
+              ? 'worker_admin.workers.remove_pick_label'
+              : 'worker_admin.workers.remove_label')}
           </button>
         ) : (
           <button
@@ -544,7 +549,9 @@ function WorkerCard({
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-success-light text-success-dark hover:bg-success/10 font-body text-xs font-semibold transition-colors"
           >
             <ArrowCounterClockwise size={13} weight="duotone" />
-            {removedInScope.length > 1 ? 'Restore to…' : 'Restore'}
+            {t(removedInScope.length > 1
+              ? 'worker_admin.workers.restore_pick_label'
+              : 'worker_admin.workers.restore_label')}
           </button>
         )}
       </div>

@@ -688,14 +688,14 @@ export default function ResidentHomePage() {
                             </span>
                           </>
                         )}
-                        {worker.isAvailable && (
-                          <>
-                            <span className="text-gray-300 text-xs">·</span>
-                            <span className="font-body text-[11px] font-medium text-emerald-600">
-                              Available
-                            </span>
-                          </>
-                        )}
+                        <>
+                          <span className="text-gray-300 text-xs">·</span>
+                          {worker.isAvailable ? (
+                            <span className="font-body text-[11px] font-medium text-emerald-600">Available</span>
+                          ) : (
+                            <span className="font-body text-[11px] font-medium text-gray-400">Unavailable</span>
+                          )}
+                        </>
                       </div>
                     </div>
                   </div>
@@ -780,17 +780,20 @@ export default function ResidentHomePage() {
                     >
                       View Profile
                     </motion.button>
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setBookingWorker(worker);
-                      }}
-                      className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl bg-accent text-white hover:bg-accent-600 transition-colors"
-                      whileTap={{ scale: 0.95 }}
-                      transition={SPRING}
-                    >
-                      Book Now
-                    </motion.button>
+                    {worker.isAvailable ? (
+                      <motion.button
+                        onClick={(e) => { e.stopPropagation(); setBookingWorker(worker) }}
+                        className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl bg-accent text-white hover:bg-accent-600 transition-colors"
+                        whileTap={{ scale: 0.95 }}
+                        transition={SPRING}
+                      >
+                        Book Now
+                      </motion.button>
+                    ) : (
+                      <div className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl bg-gray-100 text-gray-400 text-center cursor-not-allowed">
+                        Unavailable
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -872,6 +875,7 @@ export default function ResidentHomePage() {
                 setActiveAddress(null);
               } else if (resident?.id && address) {
                 // Optimistically set active, then update with real DB record
+                const nowIso = new Date().toISOString()
                 const optimistic = {
                   id: `temp-${Date.now()}`,
                   resident_id: resident.id,
@@ -883,7 +887,14 @@ export default function ResidentHomePage() {
                   pincode: null,
                   flat_no: address.flatNo,
                   block: address.block || null,
-                  created_at: new Date().toISOString(),
+                  // Audit fields — placeholder values; the real row from the DB
+                  // (returned by saveSavedAddress) will overwrite these.
+                  created_at: nowIso,
+                  updated_at: nowIso,
+                  created_by: null,
+                  updated_by: null,
+                  deleted_at: null,
+                  deleted_by: null,
                 };
                 setActiveAddress(optimistic);
                 saveSavedAddress({

@@ -37,30 +37,50 @@ export type SocietyStatus = 'active' | 'inactive'
 
 // ─── Database row types ───────────────────────────────────────────────────────
 
-export interface Society {
+/**
+ * Universal audit fields applied to every user-data table by migration 019.
+ *
+ * - `created_at` / `updated_at` are NOT NULL with DB defaults (NOW()).
+ * - `created_by` / `updated_by` / `deleted_by` are NULL when the actor was
+ *   the system / service role (e.g. signups before any auth context exists).
+ * - `deleted_at` is the soft-delete marker. NULL → live row. Application
+ *   code reads only live rows by default; auditors can query deleted ones.
+ *
+ * Use intersection (`& AuditFields`) on row types to keep TS aligned with the
+ * DB shape. Don't add these to insert/update DTOs — the trigger sets them.
+ */
+export interface AuditFields {
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
+  deleted_by: string | null
+}
+
+export interface Society extends AuditFields {
   id: string
   name: string
   address: string
   city: string
   state: string
   pincode: string
-  created_by: string
   status: SocietyStatus
-  created_at: string
 }
 
-export interface User {
+export interface User extends AuditFields {
   id: string
+  /** Supabase auth.uid() for admin accounts (auth identity differs from public.users.id). */
+  auth_id: string | null
   mobile: string
   name: string | null
   role: Role
   society_id: string | null
   avatar_url: string | null
   is_active: boolean
-  created_at: string
 }
 
-export interface RwaAdmin {
+export interface RwaAdmin extends AuditFields {
   user_id: string
   society_id: string
   designation: string | null
@@ -72,7 +92,7 @@ export interface AvailabilitySlot {
   end:   string  // "HH:MM" 24-hour
 }
 
-export interface ProviderService {
+export interface ProviderService extends AuditFields {
   id: string
   provider_id: string
   service_type: ServiceType
@@ -88,13 +108,15 @@ export interface ProviderService {
   meals_count:  1 | 2 | null
 }
 
-export interface ServiceProvider {
+export interface ServiceProvider extends AuditFields {
   id: string
   user_id: string
   /** @deprecated kept for back-compat; new code uses society_ids */
   society_id: string | null
   /** Societies this worker serves. Wizard writes this; legacy code may still mirror society_id. */
   society_ids: string[]
+  /** Societies the worker was removed from by a Worker Admin (restorable history). */
+  removed_society_ids: string[]
   kyc_status: KycStatus
   availability: boolean
   availability_slots: AvailabilitySlot[]
@@ -116,7 +138,7 @@ export type ProviderWithServices = ServiceProvider & {
   services: ProviderService[]
 }
 
-export interface KycDocument {
+export interface KycDocument extends AuditFields {
   id: string
   user_id: string
   aadhaar_url: string | null
@@ -127,7 +149,7 @@ export interface KycDocument {
   rejection_notes: string | null
 }
 
-export interface Resident {
+export interface Resident extends AuditFields {
   id: string
   user_id: string
   society_id: string
@@ -136,7 +158,7 @@ export interface Resident {
   kyc_status: KycStatus
 }
 
-export interface Booking {
+export interface Booking extends AuditFields {
   id: string
   resident_id: string
   provider_id: string
@@ -151,20 +173,18 @@ export interface Booking {
   status: BookingStatus
   amount: number | null
   otp_code: string | null
-  created_at: string
 }
 
-export interface Complaint {
+export interface Complaint extends AuditFields {
   id: string
   resident_id: string
   society_id: string
   title: string
   description: string
   status: ComplaintStatus
-  created_at: string
 }
 
-export interface ResidentSavedAddress {
+export interface ResidentSavedAddress extends AuditFields {
   id: string
   resident_id: string
   label: string
@@ -175,16 +195,14 @@ export interface ResidentSavedAddress {
   pincode: string | null
   flat_no: string | null
   block: string | null
-  created_at: string
 }
 
-export interface Notification {
+export interface Notification extends AuditFields {
   id: string
   user_id: string
   title: string
   body: string
   is_read: boolean
-  created_at: string
 }
 
 // ─── UI helper types ──────────────────────────────────────────────────────────

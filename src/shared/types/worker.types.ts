@@ -46,6 +46,8 @@ export interface BookingRequest {
   residentBlock:       string
   residentMobile:      string
   societyName:         string
+  /** The society this booking is FOR (booking_society_id ?? resident.society_id). */
+  societyId:           string | null
   workerId:            string
   serviceTypeIds:      string[]
   arrivalTime:         string     // '07:00'

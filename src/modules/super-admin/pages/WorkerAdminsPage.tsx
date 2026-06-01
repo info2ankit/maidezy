@@ -13,6 +13,7 @@ import type { WorkerAdminInvite } from '@/shared/services/userService'
 import { fetchSocieties } from '@/shared/services/societyService'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import EmptyState from '@/shared/components/EmptyState'
+import ConfirmDialog from '@/shared/components/ConfirmDialog'
 import CreateWorkerAdminModal from '../components/CreateWorkerAdminModal'
 import type { User, Society } from '@/shared/types'
 
@@ -30,6 +31,7 @@ export default function WorkerAdminsPage() {
   const [error, setError]           = useState<string | null>(null)
   const [togglingId, setTogglingId]   = useState<string | null>(null)
   const [deletingId, setDeletingId]   = useState<string | null>(null)
+  const [confirmDeleteInvite, setConfirmDeleteInvite] = useState<WorkerAdminInvite | null>(null)
   const [showModal, setShowModal]     = useState(false)
   const [editingId, setEditingId]     = useState<string | null>(null)
   const [editIds, setEditIds]         = useState<string[]>([])
@@ -80,6 +82,7 @@ export default function WorkerAdminsPage() {
       setError((e as Error).message)
     } finally {
       setDeletingId(null)
+      setConfirmDeleteInvite(null)
     }
   }
 
@@ -344,7 +347,7 @@ export default function WorkerAdminsPage() {
                           </div>
                         </div>
                         <button
-                          onClick={() => handleDeleteInvite(invite)}
+                          onClick={() => setConfirmDeleteInvite(invite)}
                           disabled={deletingId === invite.id}
                           title="Cancel invite"
                           className="shrink-0 text-gray-400 hover:text-danger transition-colors disabled:opacity-50"
@@ -406,6 +409,19 @@ export default function WorkerAdminsPage() {
         <CreateWorkerAdminModal
           onClose={() => setShowModal(false)}
           onCreated={() => { setShowModal(false); load() }}
+        />
+      )}
+
+      {/* Confirm invite cancellation */}
+      {confirmDeleteInvite && (
+        <ConfirmDialog
+          title="Cancel this invite?"
+          message={`Cancel the pending invite for ${confirmDeleteInvite.name} (+91 ${confirmDeleteInvite.mobile})? They won't be able to log in as a Worker Admin until you create a new invite.`}
+          confirmLabel="Yes, cancel invite"
+          variant="danger"
+          isLoading={deletingId === confirmDeleteInvite.id}
+          onConfirm={() => handleDeleteInvite(confirmDeleteInvite)}
+          onCancel={() => setConfirmDeleteInvite(null)}
         />
       )}
     </div>

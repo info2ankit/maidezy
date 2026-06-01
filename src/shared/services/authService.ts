@@ -2,6 +2,8 @@ import { RecaptchaVerifier, signInWithPhoneNumber, signOut as firebaseSignOut } 
 import type { ConfirmationResult } from 'firebase/auth'
 import { firebaseAuth } from '@/lib/firebase'
 import { supabase } from '@/lib/supabase'
+import { createNotification } from './notificationService'
+import { unsubscribeCurrentDevice } from '@/lib/push'
 import type { User, Role } from '@/shared/types'
 
 type SignupRole = Extract<Role, 'resident' | 'service_provider'>
@@ -132,11 +134,39 @@ export async function verifyAdminOtp(
     const password = firebaseUid
 
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    let isFirstLogin = false
+    let supabaseAuthId: string
+
     if (signInError || !signInData.user) {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
       if (signUpError || !signUpData.user) {
         return { error: signUpError?.message ?? 'Admin auth failed' }
       }
+      // signUp succeeded where signIn failed → this is the user's first time
+      // accepting their invite. Worth notifying the super admins.
+      isFirstLogin = true
+      supabaseAuthId = signUpData.user.id
+    } else {
+      supabaseAuthId = signInData.user.id
+    }
+
+    // Link the Supabase auth UID to the public.users row so session
+    // restore (App.tsx) and the audit trigger can resolve the actor.
+    // Admin auth identities use a synthetic email and get a different
+    // auth.uid() from the pre-created public.users.id.
+    await supabase
+      .from('users')
+      .update({ auth_id: supabaseAuthId })
+      .eq('id', profile.id)
+
+    if (isFirstLogin && (profile.role === 'worker_admin' || profile.role === 'rwa_admin')) {
+      // Fire-and-forget so a notification hiccup doesn't break login.
+      const acceptedRole = profile.role
+      notifySuperAdminsOfAdminAccepted(
+        (profile as User).id,
+        acceptedRole,
+        (profile as User).name ?? mobile,
+      ).catch((e: unknown) => console.warn('notify super admins of invite acceptance failed', e))
     }
 
     return { user: profile as User }
@@ -165,6 +195,9 @@ export async function fetchRwaAdminMembership(
 }
 
 export async function signOut(): Promise<void> {
+  // Best-effort: soft-delete this device's push token before clearing the session
+  // so the signed-out user stops receiving notifications on this device.
+  await unsubscribeCurrentDevice().catch(() => {})
   await Promise.all([
     supabase.auth.signOut(),
     firebaseSignOut(firebaseAuth),
@@ -172,6 +205,40 @@ export async function signOut(): Promise<void> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Notifies all active super admins when a Worker Admin / RWA Admin completes
+ * their first login (i.e. accepts the invite created for them). Best-effort.
+ */
+async function notifySuperAdminsOfAdminAccepted(
+  newAdminId:   string,
+  newAdminRole: 'worker_admin' | 'rwa_admin',
+  displayName:  string,
+): Promise<void> {
+  const { data: supers } = await supabase
+    .from('users')
+    .select('id')
+    .eq('role', 'super_admin')
+    .eq('is_active', true)
+
+  if (!supers || supers.length === 0) return
+
+  const roleLabel = newAdminRole === 'worker_admin' ? 'Worker Admin' : 'RWA Admin'
+  await Promise.allSettled(
+    supers.map((s) =>
+      createNotification({
+        userId: s.id as string,
+        type:   'system',
+        title:  `${roleLabel} joined`,
+        body:   `${displayName} just signed in for the first time and is now active.`,
+        link:   newAdminRole === 'worker_admin'
+          ? '/super-admin/worker-admins'
+          : '/super-admin/admins',
+        tag:    `admin-accepted-${newAdminId}`,
+      }),
+    ),
+  )
+}
 
 /** Build the Supabase auth email for a (mobile, role) pair. Same phone gets
  *  a distinct auth identity per role, so resident-me and worker-me are isolated. */
@@ -193,11 +260,14 @@ async function resolveProfileByMobileAndRole(
     .maybeSingle()
 
   if (existing) {
-    // Same rationale as before: don't overwrite stored id with authId. Child
-    // tables FK against the stored id; sync_user_auth_id is a documented no-op
-    // until the FK rotation work lands (see migration 008 comment).
+    // When the pre-created public.users.id differs from the Supabase auth UID,
+    // store the auth UID in auth_id so RLS policies (bs_worker, wav_self, etc.)
+    // can resolve "auth.uid() → users.id" without rotating FK references.
     if (existing.id !== authId) {
-      await supabase.rpc('sync_user_auth_id', { p_mobile: mobile, p_new_id: authId })
+      await supabase
+        .from('users')
+        .update({ auth_id: authId })
+        .eq('id', existing.id)
     }
     return existing as User
   }

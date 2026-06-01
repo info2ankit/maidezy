@@ -246,6 +246,12 @@ export default function BookingModal({ worker, onClose, onBooked }: Props) {
         {/* ── Step 1: Services ──────────────────────────────────────── */}
         {step === 1 && (
           <div className="px-5 py-4">
+            {!worker.isAvailable && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                <p className="font-body text-sm font-semibold text-amber-800">Worker is currently unavailable</p>
+                <p className="font-body text-xs text-amber-600 mt-0.5">They've turned off new bookings. Your request may not be accepted.</p>
+              </div>
+            )}
             <h3 className="font-heading font-bold text-gray-800 text-base mb-4">
               Select services
             </h3>

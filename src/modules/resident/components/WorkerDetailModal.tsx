@@ -274,15 +274,29 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
 
             {/* ── Book CTA ─────────────────────────────────────────────────── */}
             <div className="px-5 pt-2 pb-8 border-t border-gray-100">
-              <motion.button
-                onClick={() => handleBook()}
-                className="btn-primary w-full text-base py-4 rounded-2xl mt-4"
-                whileTap={{ scale: 0.97 }}
-                transition={SPRING}
-              >
-                Next →
-              </motion.button>
-              <p className="font-body text-xs text-gray-400 text-center mt-2">Select services, time &amp; days</p>
+              {worker.isAvailable ? (
+                <>
+                  <motion.button
+                    onClick={() => handleBook()}
+                    className="btn-primary w-full text-base py-4 rounded-2xl mt-4"
+                    whileTap={{ scale: 0.97 }}
+                    transition={SPRING}
+                  >
+                    Next →
+                  </motion.button>
+                  <p className="font-body text-xs text-gray-400 text-center mt-2">Select services, time &amp; days</p>
+                </>
+              ) : (
+                <>
+                  <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-3">
+                    <p className="font-body text-sm font-semibold text-amber-800">Not accepting bookings right now</p>
+                    <p className="font-body text-xs text-amber-600 mt-0.5">This worker has temporarily turned off new bookings. Check back later.</p>
+                  </div>
+                  <button disabled className="w-full text-base py-4 rounded-2xl mt-1 bg-gray-100 font-body font-semibold text-gray-400 cursor-not-allowed">
+                    Booking Unavailable
+                  </button>
+                </>
+              )}
             </div>
           </motion.div>
         )}

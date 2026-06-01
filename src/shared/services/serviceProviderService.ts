@@ -56,6 +56,13 @@ export async function fetchProviderByUserId(userId: string): Promise<ProviderWit
     home_size:      null,
     family_size:    null,
     meals_count:    null,
+    // Audit fields passed through from the source pricing row
+    created_at:     row.created_at ?? new Date().toISOString(),
+    updated_at:     row.updated_at ?? row.created_at ?? new Date().toISOString(),
+    created_by:     row.created_by ?? null,
+    updated_by:     row.updated_by ?? null,
+    deleted_at:     row.deleted_at ?? null,
+    deleted_by:     row.deleted_by ?? null,
   }))
 
   // If the DB says 'pending' but the worker has uploaded docs, show 'submitted'

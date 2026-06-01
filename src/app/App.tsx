@@ -20,11 +20,23 @@ export default function App() {
     // Restore session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const { data: profile } = await supabase
+        // Residents/workers: public.users.id = session.user.id (direct match).
+        // Admins: public.users.id ≠ session.user.id; look up by auth_id instead.
+        const { data: byId } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
-          .single()
+          .maybeSingle()
+
+        let profile = byId
+        if (!profile) {
+          const { data: byAuthId } = await supabase
+            .from('users')
+            .select('*')
+            .eq('auth_id', session.user.id)
+            .maybeSingle()
+          profile = byAuthId
+        }
 
         if (profile) setUser(profile as User)
         else setLoading(false)

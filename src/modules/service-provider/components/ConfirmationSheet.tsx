@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/shared/utils/cn'
 
 interface ConfirmationSheetProps {
@@ -26,7 +27,9 @@ export default function ConfirmationSheet({
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  return (
+  // Portal renders outside any transformed ancestor so `fixed` positioning
+  // is always relative to the viewport, not a Framer Motion animated parent.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       {/* Backdrop */}
       <div
@@ -69,6 +72,7 @@ export default function ConfirmationSheet({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

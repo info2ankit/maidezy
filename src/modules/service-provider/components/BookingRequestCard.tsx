@@ -36,16 +36,20 @@ export default function BookingRequestCard({
   const { t } = useTranslation('worker')
   const [confirming, setConfirming] = useState<ConfirmAction>(null)
   const [loading, setLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [showReschedule, setShowReschedule] = useState(false)
 
   async function handleConfirm() {
     setLoading(true)
+    setActionError(null)
     try {
       if (confirming === 'accept') await onAccept()
       else if (confirming === 'reject') await onReject()
+      setConfirming(null)
+    } catch (e) {
+      setActionError((e as Error).message ?? 'Something went wrong')
     } finally {
       setLoading(false)
-      setConfirming(null)
     }
   }
 
@@ -312,6 +316,12 @@ export default function BookingRequestCard({
           </div>
         )}
       </div>
+
+      {actionError && (
+        <div className="mt-2 mx-1 bg-danger-light border border-danger/20 rounded-xl px-3 py-2">
+          <p className="font-body text-xs text-danger-dark">{actionError}</p>
+        </div>
+      )}
 
       {confirming && (
         <ConfirmationSheet

@@ -8,6 +8,7 @@ import ComplaintsPage from './pages/ComplaintsPage'
 import SettingsPage from './pages/SettingsPage'
 import LanguageToggle from '@/shared/components/LanguageToggle'
 import NotificationsBell from '@/shared/components/NotificationsBell'
+import PushOptInBanner from '@/shared/components/PushOptInBanner'
 import Logo from '@/shared/components/Logo'
 import { useAuthStore } from '@/shared/stores/authStore'
 
@@ -43,6 +44,8 @@ export default function RwaAdminLayout() {
           <NotificationsBell />
           <LanguageToggle />
         </div>
+
+        <PushOptInBanner />
 
         <div className="px-4 py-5 md:px-8 md:py-6">
           <Routes>

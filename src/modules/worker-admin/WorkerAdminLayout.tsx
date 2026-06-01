@@ -1,6 +1,10 @@
 import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { SquaresFour, ClipboardText, Users, SignOut, Buildings, CalendarCheck } from '@phosphor-icons/react'
 import NotificationsBell from '@/shared/components/NotificationsBell'
+import LanguageToggle from '@/shared/components/LanguageToggle'
+import PushOptInBanner from '@/shared/components/PushOptInBanner'
+import PushDebugPanel from '@/shared/components/PushDebugPanel'
 import type { Icon } from '@phosphor-icons/react'
 import { cn } from '@/shared/utils/cn'
 import { useAuthStore } from '@/shared/stores/authStore'
@@ -11,16 +15,17 @@ import WaKycPage       from './pages/WaKycPage'
 import WaWorkersPage   from './pages/WaWorkersPage'
 import WaBookingsPage  from './pages/WaBookingsPage'
 
-const navItems: { label: string; icon: Icon; path: string }[] = [
-  { label: 'Dashboard',   icon: SquaresFour,    path: '/worker-admin/dashboard' },
-  { label: 'Bookings',    icon: CalendarCheck,  path: '/worker-admin/bookings'  },
-  { label: 'KYC Reviews', icon: ClipboardText,  path: '/worker-admin/kyc'       },
-  { label: 'Workers',     icon: Users,          path: '/worker-admin/workers'   },
-]
-
 export default function WorkerAdminLayout() {
+  const { t } = useTranslation('admin')
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+
+  const navItems: { labelKey: string; icon: Icon; path: string }[] = [
+    { labelKey: 'worker_admin.nav.dashboard', icon: SquaresFour,    path: '/worker-admin/dashboard' },
+    { labelKey: 'worker_admin.nav.bookings',  icon: CalendarCheck,  path: '/worker-admin/bookings'  },
+    { labelKey: 'worker_admin.nav.kyc',       icon: ClipboardText,  path: '/worker-admin/kyc'       },
+    { labelKey: 'worker_admin.nav.workers',   icon: Users,          path: '/worker-admin/workers'   },
+  ]
 
   async function handleLogout() {
     await signOut()
@@ -38,12 +43,12 @@ export default function WorkerAdminLayout() {
           </div>
           <div className="flex items-center gap-1.5 mt-2">
             <Buildings size={12} weight="duotone" className="text-white/40" />
-            <span className="text-white/40 text-xs font-body">Worker Admin</span>
+            <span className="text-white/40 text-xs font-body">{t('worker_admin.title')}</span>
           </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(({ label, icon: Icon, path }) => (
+          {navItems.map(({ labelKey, icon: Icon, path }) => (
             <NavLink
               key={path}
               to={path}
@@ -57,35 +62,45 @@ export default function WorkerAdminLayout() {
               {({ isActive }) => (
                 <>
                   <Icon size={18} weight={isActive ? 'fill' : 'regular'} />
-                  {label}
+                  {t(labelKey)}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-white/10">
+        <div className="px-3 py-4 border-t border-white/10 space-y-3">
           {user?.name && (
-            <p className="text-white/60 text-xs font-body px-3 mb-1 truncate">{user.name}</p>
+            <p className="text-white/60 text-xs font-body px-3 truncate">{user.name}</p>
           )}
-          <p className="text-white/40 text-xs font-body px-3 mb-3 truncate">{user?.mobile}</p>
+          <p className="text-white/40 text-xs font-body px-3 truncate">{user?.mobile}</p>
+
+          {/* Language toggle */}
+          <div className="px-3">
+            <LanguageToggle variant="onDark" className="w-full justify-center" />
+          </div>
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold font-body text-white/60 hover:bg-white/10 hover:text-white transition-all duration-150"
           >
             <SignOut size={18} weight="regular" />
-            Logout
+            {t('worker_admin.nav.logout')}
           </button>
         </div>
       </aside>
 
       {/* ── Main content ── */}
       <main className="flex-1 overflow-auto pb-20 md:pb-0">
+        {/* Mobile top bar */}
         <div className="md:hidden sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-2.5 flex items-center gap-3">
           <Logo height={28} />
-          <span className="font-body text-xs text-gray-400 flex-1">Worker Admin</span>
+          <span className="font-body text-xs text-gray-400 flex-1">{t('worker_admin.title')}</span>
+          <LanguageToggle />
           <NotificationsBell />
         </div>
+
+        <PushOptInBanner />
 
         <div className="px-4 py-5 md:px-8 md:py-6">
           <Routes>
@@ -101,7 +116,7 @@ export default function WorkerAdminLayout() {
 
       {/* ── Mobile bottom nav ── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-primary z-50 flex border-t border-white/10">
-        {navItems.map(({ label, icon: Icon, path }) => (
+        {navItems.map(({ labelKey, icon: Icon, path }) => (
           <NavLink
             key={path}
             to={path}
@@ -115,12 +130,14 @@ export default function WorkerAdminLayout() {
             {({ isActive }) => (
               <>
                 <Icon size={20} weight={isActive ? 'fill' : 'regular'} />
-                <span>{label}</span>
+                <span>{t(labelKey)}</span>
               </>
             )}
           </NavLink>
         ))}
       </nav>
+
+      <PushDebugPanel />
     </div>
   )
 }

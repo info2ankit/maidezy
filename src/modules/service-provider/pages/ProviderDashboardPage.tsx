@@ -11,6 +11,7 @@ import LoadingSpinner from '@/shared/components/LoadingSpinner'
 import EmptyState from '@/shared/components/EmptyState'
 import KycBadge from '@/shared/components/KycBadge'
 import KycNudgeBanner from '../components/KycNudgeBanner'
+import RemovedSocietiesBanner from '../components/RemovedSocietiesBanner'
 import { SERVICE_TYPE_BY_ID } from '@/shared/constants/serviceTypes'
 import { DISPLAY_TIMES } from '@/shared/constants/timeSlots'
 
@@ -89,6 +90,16 @@ export default function ProviderDashboardPage() {
           </motion.button>
         </div>
       </motion.div>
+
+      {/* Removed-from-society awareness */}
+      {provider.removed_society_ids && provider.removed_society_ids.length > 0 && (
+        <motion.div variants={staggerItem}>
+          <RemovedSocietiesBanner
+            removedIds={provider.removed_society_ids}
+            stillActiveCount={provider.society_ids.length}
+          />
+        </motion.div>
+      )}
 
       {/* KYC nudge */}
       <motion.div variants={staggerItem}>

@@ -44,9 +44,14 @@ export async function createWorkerAdminInvite(
     if (existing.role === 'worker_admin') throw new Error('A Worker Admin with this mobile already exists.')
   }
 
+  // Re-creating an invite for a mobile that was previously soft-deleted should
+  // revive it, not collide with the unique constraint on mobile.
   const { error } = await supabase
     .from('worker_admin_invites')
-    .upsert({ mobile, name, gender, society_ids: societyIds }, { onConflict: 'mobile' })
+    .upsert(
+      { mobile, name, gender, society_ids: societyIds, deleted_at: null },
+      { onConflict: 'mobile' },
+    )
 
   if (error) throw new Error(error.message)
 }
@@ -64,17 +69,25 @@ export async function fetchWorkerAdminInvites(): Promise<WorkerAdminInvite[]> {
   const { data, error } = await supabase
     .from('worker_admin_invites')
     .select('*')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
   return (data ?? []) as WorkerAdminInvite[]
 }
 
+/**
+ * Soft-deletes a pending worker-admin invite. The row stays in the table with
+ * `deleted_at` set, so audit history is preserved and the invite can be revived
+ * by re-creating one for the same mobile (which `createWorkerAdminInvite`
+ * handles via upsert).
+ */
 export async function deleteWorkerAdminInvite(id: string): Promise<void> {
   const { error } = await supabase
     .from('worker_admin_invites')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
+    .is('deleted_at', null)
 
   if (error) throw new Error(error.message)
 }

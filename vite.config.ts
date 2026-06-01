@@ -22,8 +22,18 @@ export default defineConfig({
         lang: "en",
         categories: ["lifestyle", "productivity"],
         icons: [
-          { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-          { src: "/icon-maskable.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+          {
+            src: "/icon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+            purpose: "any",
+          },
+          {
+            src: "/icon-maskable.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+            purpose: "maskable",
+          },
         ],
       },
       workbox: {
@@ -33,7 +43,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.origin === "https://fonts.googleapis.com",
+            urlPattern: ({ url }) =>
+              url.origin === "https://fonts.googleapis.com",
             handler: "StaleWhileRevalidate",
             options: { cacheName: "google-fonts-stylesheets" },
           },
@@ -47,7 +58,8 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: ({ url }) => /\.supabase\.co\/storage\/v1\/object\/public\//.test(url.href),
+            urlPattern: ({ url }) =>
+              /\.supabase\.co\/storage\/v1\/object\/public\//.test(url.href),
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "supabase-public-storage",
@@ -57,9 +69,20 @@ export default defineConfig({
           },
         ],
       },
-      devOptions: { enabled: true, type: 'module', navigateFallback: 'index.html' },
+      devOptions: {
+        enabled: true,
+        type: "module",
+        navigateFallback: "index.html",
+      },
     }),
   ],
+  server: {
+    allowedHosts: true,
+    // clientPort: 443 is only needed when tunneling via ngrok (which terminates
+    // TLS on 443 and forwards to the local dev port). On plain localhost the
+    // browser must use the real dev-server port, so omit it there.
+    hmr: process.env.NGROK_URL ? { clientPort: 443 } : true,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

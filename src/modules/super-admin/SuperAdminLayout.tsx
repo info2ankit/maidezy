@@ -9,6 +9,7 @@ import WorkerAdminsPage from './pages/WorkerAdminsPage'
 import ReportsPage from './pages/ReportsPage'
 import LanguageToggle from '@/shared/components/LanguageToggle'
 import NotificationsBell from '@/shared/components/NotificationsBell'
+import PushOptInBanner from '@/shared/components/PushOptInBanner'
 import Logo from '@/shared/components/Logo'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { signOut } from '@/shared/services/authService'
@@ -76,6 +77,8 @@ export default function SuperAdminLayout() {
           <NotificationsBell />
           <LanguageToggle />
         </div>
+
+        <PushOptInBanner />
 
         <div className="px-4 py-5 md:px-8 md:py-6">
           <AnimatedRoutes />

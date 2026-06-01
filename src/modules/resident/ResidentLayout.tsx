@@ -7,6 +7,9 @@ import { useAuthStore } from '@/shared/stores/authStore'
 import { useResidentStore } from './stores/residentStore'
 import { fetchResidentProfile, fetchResidentBookings } from './services/residentPortalService'
 import LoadingSpinner from '@/shared/components/LoadingSpinner'
+import PushOptInBanner from '@/shared/components/PushOptInBanner'
+import PushDebugPanel from '@/shared/components/PushDebugPanel'
+import { onForegroundMessage, autoRegisterPush } from '@/lib/push'
 
 const OnboardingScreen        = lazy(() => import('./screens/OnboardingScreen'))
 const ResidentHomePage        = lazy(() => import('./pages/ResidentHomePage'))
@@ -44,6 +47,19 @@ export default function ResidentLayout() {
   const { user }                                       = useAuthStore()
   const { resident, setResident, pendingCount, setPendingCount } = useResidentStore()
   const [checking, setChecking]                        = useState(true)
+
+  // Re-bind the FCM token to this user on every login.
+  useEffect(() => {
+    if (user?.id) autoRegisterPush(user.id).catch(() => {})
+  }, [user?.id])
+
+  useEffect(() => {
+    return onForegroundMessage(({ title, body }) => {
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body, icon: '/icons/icon-192x192.png' })
+      }
+    })
+  }, [])
 
   useEffect(() => {
     async function check() {
@@ -102,6 +118,7 @@ export default function ResidentLayout() {
   return (
     <div className="min-h-screen bg-bg">
       <div className="max-w-lg mx-auto pb-20 min-h-screen bg-white shadow-sm">
+        <PushOptInBanner />
         <Suspense fallback={
           <div className="min-h-[60vh] flex items-center justify-center">
             <LoadingSpinner />
@@ -112,6 +129,8 @@ export default function ResidentLayout() {
       </div>
 
       <BottomNav pendingCount={pendingCount} />
+
+      <PushDebugPanel />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X, CurrencyInr } from '@phosphor-icons/react'
 import { TIME_SLOTS, DISPLAY_TIMES, WORKING_DAYS } from '@/shared/constants/timeSlots'
@@ -85,7 +86,7 @@ export default function RescheduleProposalModal({
 
   const canSubmit = days.length > 0 && priceCheck.ok && !isSubmitting
 
-  return (
+  return createPortal(
     <>
       <div
         className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
@@ -218,6 +219,7 @@ export default function RescheduleProposalModal({
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   )
 }

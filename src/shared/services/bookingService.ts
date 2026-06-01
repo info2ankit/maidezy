@@ -55,10 +55,11 @@ export async function createBookingRequest(data: {
   // bookings.provider_id FK → service_providers.id; look it up from users.id
   const { data: sp, error: spErr } = await supabase
     .from('service_providers')
-    .select('id')
+    .select('id, availability')
     .eq('user_id', data.workerId)
     .maybeSingle()
   if (spErr || !sp) throw new Error(spErr?.message ?? 'Worker profile not found')
+  if (!sp.availability) throw new Error('This worker has turned off new bookings. Please choose a different worker.')
 
   const { data: row, error } = await supabase
     .from('bookings')
@@ -93,7 +94,7 @@ export async function createBookingRequest(data: {
 
 export async function acceptBooking(
   bookingId: string,
-  workerId:  string,
+  workerId:  string,   // provider_id (service_providers.id)
 ): Promise<BookingRequest> {
   const { data: booking, error: fetchErr } = await supabase
     .from('bookings')
@@ -103,6 +104,16 @@ export async function acceptBooking(
     .single()
 
   if (fetchErr || !booking) throw new Error('Booking not found')
+
+  // booking_slots.worker_id references users.id, not service_providers.id —
+  // resolve the worker's user_id from the provider row.
+  const { data: sp, error: spErr } = await supabase
+    .from('service_providers')
+    .select('user_id')
+    .eq('id', workerId)
+    .single()
+  if (spErr || !sp) throw new Error('Worker profile not found')
+  const workerUserId = sp.user_id as string
 
   const { data: updated, error: updateErr } = await supabase
     .from('bookings')
@@ -115,7 +126,7 @@ export async function acceptBooking(
 
   // Block the slot for each day
   const slotRows = (booking.days_of_week as WorkingDayId[]).map((day) => ({
-    worker_id:   workerId,
+    worker_id:   workerUserId,
     booking_id:  bookingId,
     slot_time:   booking.arrival_time,
     day_of_week: day,
@@ -183,7 +194,7 @@ async function enrichWithResidentInfo(bookings: BookingRequest[]): Promise<Booki
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const map = new Map<string, { name: string; flat: string; block: string; mobile: string; society: string }>()
+  const map = new Map<string, { name: string; flat: string; block: string; mobile: string; society: string; societyId: string }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const r of (residents ?? []) as any[]) {
     map.set(r.id as string, {
@@ -191,20 +202,46 @@ async function enrichWithResidentInfo(bookings: BookingRequest[]): Promise<Booki
       flat:    r.flat_no ?? '',
       block:   r.block ?? '',
       mobile:  r.user?.mobile ?? '',
-      society: r.society?.name ?? '',
+      society:   r.society?.name ?? '',
+      societyId: r.society_id ?? '',
     })
+  }
+
+  // For bookings with a booking_society_id override (resident is browsing/visiting
+  // another society), also resolve that society's name so the admin sees the
+  // actual destination, not the resident's home society.
+  const overrideIds = [...new Set(
+    bookings.map((b) => b.societyId).filter((id): id is string => !!id),
+  )]
+  const overrideNameMap = new Map<string, string>()
+  if (overrideIds.length > 0) {
+    const { data: overrideSocieties } = await supabase
+      .from('societies')
+      .select('id, name')
+      .in('id', overrideIds)
+    for (const s of overrideSocieties ?? []) {
+      overrideNameMap.set(s.id as string, s.name as string)
+    }
   }
 
   return bookings.map((b) => {
     const info = map.get(b.residentId)
-    if (!info) return b
+    // Booking targets booking_society_id if set, else resident's home society.
+    const targetSocietyId = b.societyId ?? info?.societyId ?? null
+    const targetSocietyName = b.societyId
+      ? overrideNameMap.get(b.societyId) ?? info?.society ?? ''
+      : info?.society ?? ''
+    if (!info) {
+      return { ...b, societyId: targetSocietyId, societyName: targetSocietyName }
+    }
     return {
       ...b,
       residentName:   info.name || b.residentName,
       residentFlatNo: info.flat || b.residentFlatNo,
       residentBlock:  info.block,
       residentMobile: info.mobile,
-      societyName:    info.society,
+      societyId:      targetSocietyId,
+      societyName:    targetSocietyName,
     }
   })
 }
@@ -354,14 +391,23 @@ export async function acceptReschedule(bookingId: string): Promise<BookingReques
     .single()
   if (error || !updated) throw new Error(error?.message ?? 'Failed to accept reschedule')
 
+  // booking_slots.worker_id references users.id, not service_providers.id —
+  // resolve the worker's user_id from the provider row.
+  const { data: sp } = await supabase
+    .from('service_providers')
+    .select('user_id')
+    .eq('id', booking.provider_id)
+    .single()
+  const workerUserId = sp?.user_id as string | undefined
+
   // Block slots for new days
-  const slotRows = newDays.map((day) => ({
-    worker_id:   booking.provider_id,
+  const slotRows = workerUserId ? newDays.map((day) => ({
+    worker_id:   workerUserId,
     booking_id:  bookingId,
     slot_time:   newTime,
     day_of_week: day,
     is_blocked:  true,
-  }))
+  })) : []
   if (slotRows.length > 0) {
     await supabase.from('booking_slots').insert(slotRows)
   }
@@ -377,7 +423,7 @@ export async function acceptReschedule(bookingId: string): Promise<BookingReques
 export async function rejectReschedule(bookingId: string): Promise<BookingRequest> {
   const { data: booking } = await supabase
     .from('bookings')
-    .select('proposed_by')
+    .select('proposed_by, resident_id')
     .eq('id', bookingId)
     .maybeSingle()
 
@@ -400,6 +446,11 @@ export async function rejectReschedule(bookingId: string): Promise<BookingReques
   if (booking?.proposed_by) {
     notifyWorkerOfRescheduleDecision(booking.proposed_by as string, 'declined')
       .catch((e) => console.error('notify worker reschedule decline failed', e))
+  }
+
+  if (booking?.resident_id) {
+    notifyResidentOfBookingDecision(booking.resident_id as string, 'cancelled')
+      .catch((e) => console.error('notify resident reschedule cancel failed', e))
   }
 
   return mapBookingRow(updated)
@@ -523,6 +574,7 @@ function mapBookingRow(row: any): BookingRequest {
     residentBlock:       '',
     residentMobile:      '',
     societyName:         '',
+    societyId:           row.booking_society_id ?? null,
     workerId:            row.provider_id,
     serviceTypeIds:      row.service_type_ids ?? [],
     arrivalTime:         row.arrival_time,
@@ -570,14 +622,21 @@ async function notifyWorkerOfNewBooking(workerUserId: string, residentId: string
     link:   '/provider/bookings',
   })
 
-  // Also notify every worker_admin whose societies overlap with this worker's
-  // — so they can act on behalf of workers who aren't tech-savvy.
-  notifyWorkerAdminsOfNewBooking(workerUserId, body).catch((e) =>
-    console.error('notify worker_admins of new booking failed', e),
+  // Also notify worker_admins (whose societies overlap with this worker's) and
+  // the RWA admin of the booking's target society — so non-tech-savvy workers
+  // still have someone watching the queue. residentId lets us resolve the
+  // booking's target society reliably without passing it through every caller.
+  notifyAdminsOfNewBooking(workerUserId, residentId, body).catch((e) =>
+    console.error('notify admins of new booking failed', e),
   )
 }
 
-async function notifyWorkerAdminsOfNewBooking(workerUserId: string, body: string): Promise<void> {
+async function notifyAdminsOfNewBooking(
+  workerUserId: string,
+  residentId:   string,
+  body:         string,
+): Promise<void> {
+  // Worker's societies (covers both legacy single column and the array)
   const { data: sp } = await supabase
     .from('service_providers')
     .select('society_id, society_ids')
@@ -585,25 +644,59 @@ async function notifyWorkerAdminsOfNewBooking(workerUserId: string, body: string
     .maybeSingle()
   if (!sp) return
 
-  const societyIds = [
+  const workerSocietyIds = [
     ...(sp.society_ids ?? []),
     ...(sp.society_id ? [sp.society_id] : []),
   ].filter((v, i, a) => v && a.indexOf(v) === i)
-  if (societyIds.length === 0) return
+  if (workerSocietyIds.length === 0) return
 
-  const { data: admins } = await supabase
-    .from('worker_admins')
-    .select('user_id')
-    .overlaps('society_ids', societyIds)
+  // Booking target society (resident's home society — most accurate proxy
+  // when the booking row isn't readily available here).
+  const { data: resident } = await supabase
+    .from('residents')
+    .select('society_id')
+    .eq('id', residentId)
+    .maybeSingle()
+  const targetSocietyId = (resident?.society_id as string | undefined) ?? null
+
+  const [waRows, rwaRows] = await Promise.all([
+    supabase
+      .from('worker_admins')
+      .select('user_id')
+      .overlaps('society_ids', workerSocietyIds),
+    // RWA admin lives on users with role=rwa_admin and society_id set
+    targetSocietyId
+      ? supabase
+          .from('users')
+          .select('id')
+          .eq('role', 'rwa_admin')
+          .eq('society_id', targetSocietyId)
+          .eq('is_active', true)
+      : Promise.resolve({ data: [] as { id: string }[] }),
+  ])
+
+  const recipients = new Map<string, { link: string; title: string }>()
+  for (const r of waRows.data ?? []) {
+    recipients.set(r.user_id as string, {
+      link:  '/worker-admin/bookings',
+      title: 'New booking for your worker',
+    })
+  }
+  for (const r of rwaRows.data ?? []) {
+    recipients.set(r.id as string, {
+      link:  '/rwa-admin/dashboard',
+      title: 'New booking in your society',
+    })
+  }
 
   await Promise.allSettled(
-    (admins ?? []).map((a) =>
+    Array.from(recipients.entries()).map(([uid, meta]) =>
       createNotification({
-        userId: a.user_id as string,
+        userId: uid,
         type:   'booking',
-        title:  'New booking for your worker',
+        title:  meta.title,
         body,
-        link:   '/worker-admin/bookings',
+        link:   meta.link,
       }),
     ),
   )

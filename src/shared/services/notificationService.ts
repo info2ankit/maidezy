@@ -19,8 +19,24 @@ export interface CreateNotificationInput {
   body:   string
   type?:  NotificationType
   link?:  string | null
+  /** A tag to collapse duplicate pushes on the device (e.g. booking id). */
+  tag?:   string
+  /**
+   * If true (default), also fire a push notification via the send-push edge
+   * function. Set to false for in-app-only notifications where you don't
+   * want to wake the user's device.
+   */
+  push?:  boolean
 }
 
+/**
+ * Records an in-app notification AND (by default) fires a push notification
+ * to every device the recipient has opted into.
+ *
+ * The push fan-out is best-effort — failures are logged but don't surface
+ * to the caller. This keeps booking/KYC flows reliable: even if the user
+ * has no devices subscribed or FCM is down, the in-app record always lands.
+ */
 export async function createNotification(input: CreateNotificationInput): Promise<void> {
   const { error } = await supabase.from('notifications').insert({
     user_id: input.userId,
@@ -29,6 +45,35 @@ export async function createNotification(input: CreateNotificationInput): Promis
     type:    input.type ?? 'system',
     link:    input.link ?? null,
   })
+  if (error) throw new Error(error.message)
+
+  // Best-effort push (don't block or fail the caller on errors)
+  if (input.push !== false) {
+    void sendPush({
+      userId: input.userId,
+      title:  input.title,
+      body:   input.body,
+      link:   input.link ?? undefined,
+      tag:    input.tag,
+    }).catch((e) => console.warn('[notify] push dispatch failed', e))
+  }
+}
+
+export interface SendPushInput {
+  userId: string
+  title:  string
+  body:   string
+  link?:  string
+  tag?:   string
+}
+
+/**
+ * Direct push without writing an in-app record. Use for transient alerts
+ * (e.g. "your booking is starting in 5 min") that don't belong in the
+ * notification inbox. Most callers should prefer `createNotification`.
+ */
+export async function sendPush(input: SendPushInput): Promise<void> {
+  const { error } = await supabase.functions.invoke('send-push', { body: input })
   if (error) throw new Error(error.message)
 }
 
