@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Buildings, Users, ClipboardText, CheckCircle, XCircle, HourglassMedium } from '@phosphor-icons/react'
+import { Link } from 'react-router-dom'
+import {
+  Buildings, Users, ClipboardText, CheckCircle, XCircle,
+  HourglassMedium, MinusCircle,
+} from '@phosphor-icons/react'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { fetchWorkerAdminMeta, fetchWorkersForAdmin, computeStats } from '../services/workerAdminService'
 import type { WaDashboardStats } from '../services/workerAdminService'
@@ -31,7 +35,7 @@ function StatCard({ label, value, color, bg, icon }: StatCardProps) {
 
 export default function WaDashboardPage() {
   const { user } = useAuthStore()
-  const [stats, setStats]       = useState<WaDashboardStats | null>(null)
+  const [stats, setStats]         = useState<WaDashboardStats | null>(null)
   const [societies, setSocieties] = useState<Society[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError]         = useState<string | null>(null)
@@ -41,14 +45,15 @@ export default function WaDashboardPage() {
     async function load() {
       try {
         const adminMeta = await fetchWorkerAdminMeta(user!.id)
+        const ids       = adminMeta?.society_ids ?? []
 
         const [workers, allSocieties] = await Promise.all([
-          fetchWorkersForAdmin(adminMeta?.society_ids ?? []),
+          fetchWorkersForAdmin(ids),
           fetchSocieties(),
         ])
 
-        setStats(computeStats(workers))
-        setSocieties(allSocieties.filter((s) => adminMeta?.society_ids.includes(s.id)))
+        setStats(computeStats(workers, ids))
+        setSocieties(allSocieties.filter((s) => ids.includes(s.id)))
       } catch (e) {
         setError((e as Error).message)
       } finally {
@@ -80,10 +85,10 @@ export default function WaDashboardPage() {
         </p>
       </div>
 
-      {/* Stats grid */}
+      {/* Primary stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard
-          label="Total Workers"
+          label="Active Workers"
           value={stats?.total ?? 0}
           color="text-primary"
           bg="bg-primary/10"
@@ -111,6 +116,26 @@ export default function WaDashboardPage() {
           icon={<XCircle size={22} weight="duotone" className="text-danger" />}
         />
       </div>
+
+      {/* Removed workers callout (only when relevant) */}
+      {(stats?.removed ?? 0) > 0 && (
+        <Link
+          to="/worker-admin/workers"
+          className="card flex items-center gap-3 hover:bg-gray-50 transition-colors"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
+            <MinusCircle size={20} weight="duotone" className="text-gray-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-body text-sm font-semibold text-gray-800">
+              {stats!.removed} worker{stats!.removed !== 1 ? 's' : ''} removed from your societies
+            </p>
+            <p className="font-body text-xs text-gray-400 mt-0.5">
+              Tap to review or restore them in the Workers tab.
+            </p>
+          </div>
+        </Link>
+      )}
 
       {/* Assigned societies */}
       <div>
@@ -146,9 +171,12 @@ export default function WaDashboardPage() {
         )}
       </div>
 
-      {/* Quick links */}
+      {/* Pending KYC nudge */}
       {(stats?.submitted ?? 0) > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+        <Link
+          to="/worker-admin/kyc"
+          className="bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3 flex items-center gap-3 hover:bg-yellow-100/70 transition-colors"
+        >
           <HourglassMedium size={20} weight="duotone" className="text-yellow-500 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="font-body text-sm font-semibold text-gray-800">
@@ -157,7 +185,7 @@ export default function WaDashboardPage() {
             <p className="font-body text-xs text-gray-500 mt-0.5">Go to KYC Reviews to approve or reject.</p>
           </div>
           <ClipboardText size={18} weight="duotone" className="text-yellow-500 shrink-0" />
-        </div>
+        </Link>
       )}
     </div>
   )
