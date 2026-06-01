@@ -199,8 +199,9 @@ export default function WorkerDetailModal({ worker, onClose, onBook }: Props) {
                     return (
                       <motion.button
                         key={p.serviceTypeId}
-                        onClick={() => handleBook(p.serviceTypeId)}
-                        className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-2xl active:bg-gray-100 transition-colors text-left"
+                        onClick={() => worker.isAvailable && handleBook(p.serviceTypeId)}
+                        disabled={!worker.isAvailable}
+                        className={`w-full flex items-center gap-3 p-3 bg-gray-50 rounded-2xl transition-colors text-left ${worker.isAvailable ? 'active:bg-gray-100 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                         initial={{ opacity: 0, x: -12 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ ...SPRING, delay: 0.1 + i * 0.05 }}

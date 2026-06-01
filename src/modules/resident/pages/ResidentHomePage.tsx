@@ -690,11 +690,7 @@ export default function ResidentHomePage() {
                         )}
                         <>
                           <span className="text-gray-300 text-xs">·</span>
-                          {worker.isAvailable ? (
-                            <span className="font-body text-[11px] font-medium text-emerald-600">Available</span>
-                          ) : (
-                            <span className="font-body text-[11px] font-medium text-gray-400">Unavailable</span>
-                          )}
+                          <span className="font-body text-[11px] font-medium text-emerald-600">Available</span>
                         </>
                       </div>
                     </div>
@@ -780,20 +776,14 @@ export default function ResidentHomePage() {
                     >
                       View Profile
                     </motion.button>
-                    {worker.isAvailable ? (
-                      <motion.button
-                        onClick={(e) => { e.stopPropagation(); setBookingWorker(worker) }}
-                        className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl bg-accent text-white hover:bg-accent-600 transition-colors"
-                        whileTap={{ scale: 0.95 }}
-                        transition={SPRING}
-                      >
-                        Book Now
-                      </motion.button>
-                    ) : (
-                      <div className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl bg-gray-100 text-gray-400 text-center cursor-not-allowed">
-                        Unavailable
-                      </div>
-                    )}
+                    <motion.button
+                      onClick={(e) => { e.stopPropagation(); setBookingWorker(worker) }}
+                      className="flex-1 font-body font-semibold text-sm py-2.5 rounded-xl bg-accent text-white hover:bg-accent-600 transition-colors"
+                      whileTap={{ scale: 0.95 }}
+                      transition={SPRING}
+                    >
+                      Book Now
+                    </motion.button>
                   </div>
                 </motion.div>
               );

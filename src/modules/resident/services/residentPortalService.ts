@@ -94,11 +94,13 @@ export async function fetchWorkersForResident(
       .from('service_providers')
       .select('id, user_id, availability, gender, rating, society_ids, kyc_status')
       .eq('society_id', societyId)
+      .eq('availability', true)
       .neq('kyc_status', 'rejected'),
     supabase
       .from('service_providers')
       .select('id, user_id, availability, gender, rating, society_ids, kyc_status')
       .overlaps('society_ids', [societyId])
+      .eq('availability', true)
       .neq('kyc_status', 'rejected'),
   ])
 
